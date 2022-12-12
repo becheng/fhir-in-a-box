@@ -1,0 +1,84 @@
+# This is a basic workflow to help you get started with Actions
+
+name: baseline-fhir-service
+
+on:
+  # Triggers the workflow on push or pull request events but only for the "main" branch
+  # push:
+  #   branches: [ "main" ]
+  # pull_request:
+  #   branches: [ "main" ]
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+env:
+  TEMP_DIR_PATH: './tmp'
+  FHIR_PROXY_BICEP_NAME: 'fhir-proxy.bicep'
+  FHIR_ENDPT_DOMAIN: '.fhir.azurehealthcareapis.com'
+
+defaults:
+  run:
+    shell: bash
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+
+  # job1: deploy the ahds workspace with a fhir service
+  deploy-infra-fhir-service:
+    runs-on: ubuntu-latest
+    environment: sample
+    outputs:
+      uniqueSuffix: ${{ steps.get-unique-names.outputs.uniqueSuffix }} 
+      fhirWorkspaceName: ${{ steps.get-unique-names.outputs.fhirWorkspaceName }} 
+      fhirName: ${{ steps.get-unique-names.outputs.fhirName }} 
+      
+    steps:
+
+      # checkout 
+    - uses: actions/checkout@v3
+
+      # Log into Azure
+    - name: az-login
+      uses: Azure/login@v1.4.6
+      with:
+        client-id: ${{ secrets.AZURE_CLIENT_ID }}
+        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+    
+      # Hash the resource group's ID so it's unique but also repeatable
+      # steps: 
+      # 1. retrieve the resouceGroup's id property
+      # 2. hash the id and take the first 8 chars of the hash
+      # 3. set the output using the hash substring
+    - name: generate unique suffix 
+      id: get-unique-names
+      shell: bash
+      run: |
+        rsGroupId=$(az group list --query "[?name=='${{ secrets.AZURE_RG }}'].id" -o tsv)
+        suffix=$(echo -n $rsGroupId | shasum | cut -c1-8)
+        echo "::set-output name=uniqueSuffix::$suffix"
+        echo "::set-output name=fhirWorkspaceName::ws$suffix"
+        echo "::set-output name=fhirName::fhir$suffix"
+        unset rsGroupId
+        unset suffix
+               
+      # Deploy uisng bicep
+      # Important note: you cannot set the fhir service endpoint, it is automatically set by
+      # resource based on the workspaceName and the fhirName with a format of
+      # 'https://${workspaceName}-${fhirName}.fhir.azurehealthcareapis.com' 
+      # @TODO: change fhir+Suffix to be unique within the AHDS workspace
+
+    - name: deploy-fhir
+      uses: azure/arm-deploy@v1.0.8
+      with:
+        subscriptionId: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+        resourceGroupName: ${{ secrets.AZURE_RG }}
+        template: ./bicep/fhir-api.bicep
+        parameters: 'workspaceName=${{steps.get-unique-names.outputs.fhirWorkspaceName}} 
+          fhirName=${{steps.get-unique-names.outputs.fhirName}}'
+        failOnStdErr: false
+
