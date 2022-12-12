@@ -59,10 +59,13 @@ jobs:
       shell: bash
       run: |
         rsGroupId=$(az group list --query "[?name=='${{ secrets.AZURE_RG }}'].id" -o tsv)
+        
         suffix=$(echo -n $rsGroupId | shasum | cut -c1-8)
-        echo "::set-output name=uniqueSuffix::$suffix"
-        echo "::set-output name=fhirWorkspaceName::ws$suffix"
-        echo "::set-output name=fhirName::fhir$suffix"
+
+        echo "uniqueSuffix=$suffix" >> $GITHUB_OUTPUT
+        echo "fhirWorkspaceName=ws$suffix" >> $GITHUB_OUTPUT
+        echo "fhirName=fhir$suffix" >> $GITHUB_OUTPUT
+        
         unset rsGroupId
         unset suffix
                
