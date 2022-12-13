@@ -107,16 +107,28 @@ jobs:
         subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
     
       # Install synthea and generate data
-    - name: install-synthea
+    - name: install-jdk
       uses: actions/setup-java@v3.8.0
       with:
         distribution: 'microsoft' 
         java-version: '17'
-    - run: |
+    
+      # Generate Synthea dataset
+    - name: install-and-run-synthea
+      run: |
         java -version
         mkdir ${{ env.TEMP_DIR_PATH }}
         curl -L https://github.com/synthetichealth/synthea/releases/download/master-branch-latest/synthea-with-dependencies.jar --output ${{ env.TEMP_DIR_PATH }}/${{ env.SYNTHEA_JAR_NAME }}
         cd ${{ env.TEMP_DIR_PATH }}
         java -jar ${{ env.SYNTHEA_JAR_NAME }} -m "${{ secrets.SYNTHEA_MODULE_NAME }}" -p ${{ secrets.SYNTHEA_PATIENTS_NUM }}
         ls -l
-        
+
+      # Azcopy synthea data to target storage account
+    - name: azcopy-to-storage
+      run: |
+        ls -l
+        cd ${{ env.TEMP_DIR_PATH }}
+        wget -O azcopy_v10.tar.gz https://aka.ms/downloadazcopy-v10-linux && tar -xf azcopy_v10.tar.gz --strip-components=1
+        ls -l
+
+
