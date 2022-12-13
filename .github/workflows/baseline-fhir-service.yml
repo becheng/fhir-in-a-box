@@ -30,7 +30,7 @@ jobs:
 
   # job1: deploy the ahds workspace with a fhir service
   deploy-infra-fhir-service:
-    if: ${{ false }} #disables the job
+    #if: ${{ false }} #disables the job
     runs-on: ubuntu-latest
     environment: sample
     outputs:
