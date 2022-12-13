@@ -126,7 +126,6 @@ jobs:
       # Azcopy synthea data to target storage account
       # Note: appId/clientId here must have the 'Storage Blob Data Contributor' role assigned to the target stoarge account.
     - name: azcopy-to-storage
-      env: AZCOPY_SPA_CLIENT_SECRET: ${{ secrets.AZCOPY_SPA_CLIENT_SECRET }}
       run: |
         ls -l
         cd ${{ env.TEMP_DIR_PATH }}
@@ -134,5 +133,7 @@ jobs:
         ls -l
         azcopy login --service-principal --application-id ${{ secrets.AZURE_CLIENT_ID }}
         azcopy login status
+      env: 
+        AZCOPY_SPA_CLIENT_SECRET: ${{ secrets.AZCOPY_SPA_CLIENT_SECRET }}
 
 
