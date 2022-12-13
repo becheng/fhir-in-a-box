@@ -14,7 +14,7 @@ on:
 
 env:
   TEMP_DIR_PATH: './tmp'
-  FHIR_PROXY_BICEP_NAME: 'fhir-proxy.bicep'
+  SYNTHEA_JAR_NAME: 'synthea-with-dependencies.jar'
   FHIR_ENDPT_DOMAIN: '.fhir.azurehealthcareapis.com'
 
 defaults:
@@ -111,5 +111,7 @@ jobs:
       with:
         distribution: 'microsoft' 
         java-version: '17'
-      run: |
+    - run: |
         java -version
+        mkdir ${{ env.TEMP_DIR_PATH }}
+        curl -L https://github.com/synthetichealth/synthea/releases/download/master-branch-latest/synthea-with-dependencies.jar --output ${{ env.TEMP_DIR_PATH }}/${{ env.SYNTHEA_JAR_NAME }}
