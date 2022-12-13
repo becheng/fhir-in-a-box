@@ -27,6 +27,7 @@ permissions:
 
 jobs:
 
+
   # job1: deploy the ahds workspace with a fhir service
   deploy-infra-fhir-service:
     if: ${{ false }} #disables the job
@@ -86,10 +87,39 @@ jobs:
         fhirName=${{steps.get-unique-names.outputs.fhirName}}'
         failOnStdErr: false
 
-  # job2: seed fhir service with synthea data 
+
+  # job2: deploy storage account to import fhir resources to the fhir service
+  deploy-storage-acct:
+    #if: ${{ false }} #disables the job
+    needs: [deploy-storage-acct]
+    runs-on: ubuntu-latest
+    environment: sample
+
+    steps:
+
+      # checkout 
+    - uses: actions/checkout@v3
+
+      # Log into Azure
+    - name: az-login
+      uses: Azure/login@v1.4.6
+      with:
+        client-id: ${{ secrets.AZURE_CLIENT_ID }}
+        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+    - name: deploy-storage-acct
+      uses: azure/arm-deploy@v1.0.9
+      with:
+        subscriptionId: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+        resourceGroupName: ${{ secrets.AZURE_RG }}
+        template: ./bicep/blob-storage.bicep
+
+
+  # job3: seed fhir service with synthea data 
   seed-with-synthea-data:
     #if: ${{ false }} #disables the job
-    #needs: [deploy-infra-fhir-service]
+    needs: [deploy-storage-acct]
     runs-on: ubuntu-latest
     environment: sample
 
@@ -135,5 +165,3 @@ jobs:
         azcopy login status
       env: 
         AZCOPY_SPA_CLIENT_SECRET: ${{ secrets.AZCOPY_SPA_CLIENT_SECRET }}
-
-
