@@ -124,11 +124,15 @@ jobs:
         ls -l
 
       # Azcopy synthea data to target storage account
+      # Note: appId/clientId here must have the 'Storage Blob Data Contributor' role assigned to the target stoarge account.
     - name: azcopy-to-storage
+      env: AZCOPY_SPA_CLIENT_SECRET: ${{ secrets.AZCOPY_SPA_CLIENT_SECRET }}
       run: |
         ls -l
         cd ${{ env.TEMP_DIR_PATH }}
         wget -O azcopy_v10.tar.gz https://aka.ms/downloadazcopy-v10-linux && tar -xf azcopy_v10.tar.gz --strip-components=1
         ls -l
+        azcopy login --service-principal --application-id ${{ secrets.AZURE_CLIENT_ID }}
+        azcopy login status
 
 
