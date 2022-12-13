@@ -107,11 +107,9 @@ jobs:
     
       # Install synthea and generate data
     - name: install-synthea
-      - name: Setup Java JDK
-        uses: actions/setup-java@v3.8.0
-        with:
-          distribution: 'microsoft' 
-          java-version: '17'
-        run: |
-          java -version
-    
+      uses: actions/setup-java@v3.8.0
+      with:
+        distribution: 'microsoft' 
+        java-version: '17'
+      run: |
+        java -version
