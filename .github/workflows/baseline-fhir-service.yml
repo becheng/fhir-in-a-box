@@ -76,12 +76,42 @@ jobs:
       # @TODO: change fhir+Suffix to be unique within the AHDS workspace
 
     - name: deploy-fhir
-      uses: azure/arm-deploy@v1.0.8
+      uses: azure/arm-deploy@v1.0.9
       with:
         subscriptionId: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
         resourceGroupName: ${{ secrets.AZURE_RG }}
         template: ./bicep/fhir-api.bicep
-        parameters: 'workspaceName=${{steps.get-unique-names.outputs.fhirWorkspaceName}} 
-          fhirName=${{steps.get-unique-names.outputs.fhirName}}'
+        parameters: 'workspaceName=${{steps.get-unique-names.outputs.fhirWorkspaceName}}
+        fhirName=${{steps.get-unique-names.outputs.fhirName}}'
         failOnStdErr: false
 
+  # job2: seed fhir service with synthea data 
+  seed-with-synthea-data:
+    #if: ${{ false }} #disables the job
+    needs: [deploy-infra-fhir-service]
+    runs-on: ubuntu-latest
+    environment: sample
+
+    steps:
+
+      # checkout 
+    - uses: actions/checkout@v3
+
+      # Log into Azure
+    - name: az-login
+      uses: Azure/login@v1.4.6
+      with:
+        client-id: ${{ secrets.AZURE_CLIENT_ID }}
+        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+    
+      # Install synthea and generate data
+    - name: install-synthea
+      - name: Setup Java JDK
+        uses: actions/setup-java@v3.8.0
+        with:
+          distribution: 'microsoft' 
+          java-version: '17'
+        run: |
+          java -version
+    
