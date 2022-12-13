@@ -117,8 +117,8 @@ jobs:
     - name: get-storage-names
       id: get-storage-names
       run: |
-        echo "storage-acct-name=fhirimpsa${{needs.deploy-infra-fhir-service.outputs.suffix}} >> $GITHUB_OUTPUT"
-        echo "blob-container-name=importsrc >> $GITHUB_OUTPUT"
+        echo "storage-acct-name=fhirimpsa${{needs.deploy-infra-fhir-service.outputs.suffix}}" >> $GITHUB_OUTPUT
+        echo "blob-container-name=importsrc" >> $GITHUB_OUTPUT
         
       # deploy storage account
     - name: deploy-storage-acct
