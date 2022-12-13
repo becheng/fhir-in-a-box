@@ -36,7 +36,8 @@ jobs:
     outputs:
       uniqueSuffix: ${{ steps.get-unique-names.outputs.uniqueSuffix }} 
       fhirWorkspaceName: ${{ steps.get-unique-names.outputs.fhirWorkspaceName }} 
-      fhirName: ${{ steps.get-unique-names.outputs.fhirName }} 
+      fhirName: ${{ steps.get-unique-names.outputs.fhirName }}
+      suffix: ${{ steps.get-unique-names.outputs.suffix }}
       
     steps:
 
@@ -67,6 +68,7 @@ jobs:
         echo "uniqueSuffix=$suffix" >> $GITHUB_OUTPUT
         echo "fhirWorkspaceName=ws$suffix" >> $GITHUB_OUTPUT
         echo "fhirName=fhir$suffix" >> $GITHUB_OUTPUT
+        echo "suffix=$suffix" >> $GITHUB_OUTPUT
         
         unset rsGroupId
         unset suffix
@@ -94,6 +96,9 @@ jobs:
     #needs: [deploy-infra-fhir-service]
     runs-on: ubuntu-latest
     environment: sample
+    outputs:
+      storage-acct-name: ${{ steps.get-storage-names.outputs.storage-acct-name }} 
+      blob-container-name: ${{ steps.get-storage-names.outputs.blob-container-name }} 
 
     steps:
 
@@ -108,12 +113,22 @@ jobs:
         tenant-id: ${{ secrets.AZURE_TENANT_ID }}
         subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
+      # generate storage names 
+    - name: get-storage-names
+      id: get-storage-names
+      run: |
+        echo "storage-acct-name=fhirimpsa${{needs.deploy-infra-fhir-service.outputs.suffix}} >> $GITHUB_OUTPUT"
+        echo "blob-container-name=importsrc >> $GITHUB_OUTPUT"
+        
+      # deploy storage account
     - name: deploy-storage-acct
       uses: azure/arm-deploy@v1.0.9
       with:
         subscriptionId: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
         resourceGroupName: ${{ secrets.AZURE_RG }}
         template: ./bicep/blob-storage.bicep
+        parameters: 'storage_acct_name=${{steps.get-storage-names.outputs.storage-acct-name}}
+        blob_container_name=${{steps.get-storage-names.outputs.blob-container-name}}'
 
 
   # job3: seed fhir service with synthea data 
@@ -163,5 +178,6 @@ jobs:
         ls -l
         azcopy login --service-principal --application-id ${{ secrets.AZURE_CLIENT_ID }}
         azcopy login status
+        azcopy cp "./output" "https://${{storage_acct_name}}.blob.core.windows.net/${{blob_container_name}}/" --recursive=true
       env: 
         AZCOPY_SPA_CLIENT_SECRET: ${{ secrets.AZCOPY_SPA_CLIENT_SECRET }}
