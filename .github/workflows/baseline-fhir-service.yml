@@ -29,6 +29,7 @@ jobs:
 
   # job1: deploy the ahds workspace with a fhir service
   deploy-infra-fhir-service:
+    if: ${{ false }} #disables the job
     runs-on: ubuntu-latest
     environment: sample
     outputs:
@@ -88,7 +89,7 @@ jobs:
   # job2: seed fhir service with synthea data 
   seed-with-synthea-data:
     #if: ${{ false }} #disables the job
-    needs: [deploy-infra-fhir-service]
+    #needs: [deploy-infra-fhir-service]
     runs-on: ubuntu-latest
     environment: sample
 
@@ -117,4 +118,5 @@ jobs:
         curl -L https://github.com/synthetichealth/synthea/releases/download/master-branch-latest/synthea-with-dependencies.jar --output ${{ env.TEMP_DIR_PATH }}/${{ env.SYNTHEA_JAR_NAME }}
         cd ${{ env.TEMP_DIR_PATH }}
         java -jar ${{ env.SYNTHEA_JAR_NAME }} -m "${{ secrets.SYNTHEA_MODULE_NAME }}" -p ${{ secrets.SYNTHEA_PATIENTS_NUM }}
-        ll
+        ls -l
+        
