@@ -178,6 +178,6 @@ jobs:
         ls -l
         azcopy login --service-principal --application-id ${{ secrets.AZURE_CLIENT_ID }}
         azcopy login status
-        azcopy cp "./output" "https://${{storage_acct_name}}.blob.core.windows.net/${{blob_container_name}}/" --recursive=true
+        azcopy cp "./output" "https://${{needs.deploy-storage-acct.outputs.storage-acct-name:}}.blob.core.windows.net/${{needs.deploy-storage-acct.outputs.blob-container-name}}/" --recursive=true
       env: 
         AZCOPY_SPA_CLIENT_SECRET: ${{ secrets.AZCOPY_SPA_CLIENT_SECRET }}
