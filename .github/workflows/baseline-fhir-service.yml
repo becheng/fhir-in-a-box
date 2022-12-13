@@ -91,7 +91,7 @@ jobs:
   # job2: deploy storage account to import fhir resources to the fhir service
   deploy-storage-acct:
     #if: ${{ false }} #disables the job
-    needs: [deploy-storage-acct]
+    #needs: [deploy-infra-fhir-service]
     runs-on: ubuntu-latest
     environment: sample
 
