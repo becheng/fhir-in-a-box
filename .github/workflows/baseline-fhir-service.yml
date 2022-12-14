@@ -136,11 +136,11 @@ jobs:
         spObjectId=$(az ad app show --id "${{secrets.AZURE_CLIENT_ID}}" --query "id" -o tsv)
         storageAcctResourceId=$(az resource list -n "${{steps.get-storage-names.outputs.storage-acct-name}}" --query "[].id" -o tsv)
 
-        az role assignment create \
-            --assignee-object-id "$spObjectId" \
-            --role "Storage Blob Data Contributor" \
-            --assignee-principal-type "ServicePrincipal" \
-            --scope $storageAcctResourceId
+      # az role assignment create \
+      #     --assignee-object-id $spObjectId \
+      #     --role "Storage Blob Data Contributor" \
+      #     --assignee-principal-type "ServicePrincipal" \
+      #     --scope $storageAcctResourceId
 
 
   # job3: seed fhir service with synthea data 
