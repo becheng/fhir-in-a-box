@@ -42,7 +42,7 @@ jobs:
       # checkout 
     - uses: actions/checkout@v3
 
-      # Log into Azure
+      # log into Azure
     - name: az-login
       uses: Azure/login@v1.4.6
       with:
@@ -50,7 +50,7 @@ jobs:
         tenant-id: ${{ secrets.AZURE_TENANT_ID }}
         subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
     
-      # Hash the resource group's ID so it's unique but also repeatable
+      # hash the resource group's ID so it's unique but also repeatable
       # steps: 
       # 1. retrieve the resouceGroup's id property
       # 2. hash the id and take the first 8 chars of the hash
@@ -71,22 +71,19 @@ jobs:
         unset rsGroupId
         unset suffix
                
-      # Deploy uisng bicep
+      # deploy uisng bicep
       # Important note: you cannot set the fhir service endpoint, it is automatically set by
       # resource based on the workspaceName and the fhirName with a format of
       # 'https://${workspaceName}-${fhirName}.fhir.azurehealthcareapis.com' 
       # @TODO: change fhir+Suffix to be unique within the AHDS workspace
-
     - name: deploy-fhir
       uses: azure/arm-deploy@v1.0.9
       with:
         subscriptionId: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
         resourceGroupName: ${{ secrets.AZURE_RG }}
-        template: ./bicep/fhir-api.bicep
+        template: ./bicep/adhs-fhir.bicep
         parameters: 'workspaceName=${{steps.get-unique-names.outputs.fhirWorkspaceName}}
         fhirName=${{steps.get-unique-names.outputs.fhirName}}'
-        failOnStdErr: false
-
 
   # job2: deploy storage account to import fhir resources to the fhir service
   deploy-storage-acct:
@@ -161,7 +158,7 @@ jobs:
       # checkout 
     - uses: actions/checkout@v3
 
-      # Log into Azure
+      # log into Azure
     - name: az-login
       uses: Azure/login@v1.4.6
       with:
@@ -176,7 +173,7 @@ jobs:
         distribution: 'microsoft' 
         java-version: '17'
     
-      # Generate Synthea dataset
+      # generate Synthea dataset
     - name: install-and-run-synthea
       run: |
         java -version
@@ -186,8 +183,7 @@ jobs:
         java -jar ${{ env.SYNTHEA_JAR_NAME }} -m "${{ secrets.SYNTHEA_MODULE_NAME }}" -p ${{ secrets.SYNTHEA_PATIENTS_NUM }}
         ls -l
 
-      # Azcopy synthea data to target storage account
-      # Note: appId/clientId here must have the 'Storage Blob Data Contributor' role assigned to the target stoarge account.
+      # azcopy synthea data to target storage account
     - name: azcopy-to-storage
       run: |
         ls -l
@@ -198,7 +194,35 @@ jobs:
         azcopy login status
         echo "STORAGEACCT: https://${{needs.deploy-storage-acct.outputs.storage-acct-name}}.blob.core.windows.net/${{needs.deploy-storage-acct.outputs.blob-container-name}}/"
         azcopy cp "./output/fhir/*.*" "https://${{needs.deploy-storage-acct.outputs.storage-acct-name}}.blob.core.windows.net/${{needs.deploy-storage-acct.outputs.blob-container-name}}/" --recursive=true
-      #cd output
-      #ls -l
       env: 
         AZCOPY_SPA_CLIENT_SECRET: ${{ secrets.AZCOPY_SPA_CLIENT_SECRET }}
+
+  # job 4: import the fhir resources
+  run-import:
+    needs: [seed-with-synthea-data]
+    runs-on: ubuntu-latest
+    environment: sample
+
+    steps:
+
+      # checkout 
+    - uses: actions/checkout@v3
+
+      # log into Azure
+    - name: az-login
+      uses: Azure/login@v1.4.6
+      with:
+        client-id: ${{ secrets.AZURE_CLIENT_ID }}
+        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      # enable initial import on the fhir service    
+    - name: enable-fhir-importmode
+      uses: azure/arm-deploy@v1.0.9
+      with:
+        subscriptionId: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+        resourceGroupName: ${{ secrets.AZURE_RG }}
+        template: ./bicep/adhs-fhir.bicep
+        parameters: 'workspaceName=${{steps.get-unique-names.outputs.fhirWorkspaceName}}
+        fhirName=${{steps.get-unique-names.outputs.fhirName}} isImportEnabled=true
+        isInitialImportMode=true importStorageAcctName=${{needs.deploy-storage-acct.outputs.storage-acct-name}}' 
