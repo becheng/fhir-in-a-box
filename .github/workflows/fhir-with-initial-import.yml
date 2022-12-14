@@ -135,7 +135,7 @@ jobs:
       run: |
         storageAcctResourceId=$(az resource list -n "${{steps.get-storage-names.outputs.storage-acct-name}}" --query "[].id" -o tsv)
         spObjectId=$(az ad sp show --id "${{secrets.AZURE_CLIENT_ID}}" --query "id" -o tsv)
-        fhirMSIObjId=$(az resource list --name "${{needs.deploy-infra-fhir-service.outputs.fhirName}}" --query "[].identity.principalId" -o tsv)        
+        fhirMSIObjId=$(az resource list --name "${{needs.deploy-infra-fhir-service.outputs.fhirWorkspaceName}}/${{needs.deploy-infra-fhir-service.outputs.fhirName}}" --query "[].identity.principalId" -o tsv)        
 
         az role assignment create \
             --assignee-object-id $spObjectId \
