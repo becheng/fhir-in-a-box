@@ -130,6 +130,18 @@ jobs:
         parameters: 'storage_acct_name=${{steps.get-storage-names.outputs.storage-acct-name}}
         blob_container_name=${{steps.get-storage-names.outputs.blob-container-name}}'
 
+      # assign the SP with storage blob contributor role to storage acct.  
+    - name: assign-contributor-role
+      run: |
+        spObjectId=$(az ad app show --id "${{secrets.AZURE_CLIENT_ID}}" --query "id" -o tsv)
+        storageAcctResourceId=$(az resource list -n "${{steps.get-storage-names.outputs.storage-acct-name}}" --query "[].id" -o tsv)
+
+        az role assignment create \
+            --assignee-object-id "$spObjectId" \
+            --role "Storage Blob Data Contributor" \
+            --assignee-principal-type "ServicePrincipal" \
+            --scope $storageAcctResourceId
+
 
   # job3: seed fhir service with synthea data 
   seed-with-synthea-data:
