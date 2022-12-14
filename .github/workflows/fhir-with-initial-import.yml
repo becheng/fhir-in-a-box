@@ -144,7 +144,7 @@ jobs:
             --scope $storageAcctResourceId
     
         az role assignment create \
-            --assignee-object-id "$fhirMSIObjId" \
+            --assignee-object-id $fhirMSIObjId \
             --role "Storage Blob Data Contributor" \
             --assignee-principal-type "ServicePrincipal" \
             --scope $storageAcctResourceId
