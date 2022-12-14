@@ -134,7 +134,7 @@ jobs:
       # Note: the SP must have the Graph Application.Read.All api permission to use 'az ad app' mehthods.   
     - name: assign-contributor-role
       run: |
-        spObjectId=$(az ad app show --id "${{secrets.AZURE_CLIENT_ID}}" --query "id" -o tsv)
+        spObjectId=$(az ad app sp --id "${{secrets.AZURE_CLIENT_ID}}" --query "id" -o tsv)
         storageAcctResourceId=$(az resource list -n "${{steps.get-storage-names.outputs.storage-acct-name}}" --query "[].id" -o tsv)
 
         az role assignment create \
