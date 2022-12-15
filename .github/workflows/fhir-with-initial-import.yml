@@ -149,7 +149,7 @@ jobs:
   # job3: seed fhir service with synthea data 
   seed-with-synthea-data:
     #if: ${{ false }} #disables the job
-    needs: [deploy-storage-acct]
+    needs: [deploy-storage-acct, deploy-infra-fhir-service]
     runs-on: ubuntu-latest
     environment: sample
 
@@ -207,4 +207,22 @@ jobs:
         parameters: 'workspaceName=${{needs.deploy-infra-fhir-service.outputs.fhirWorkspaceName}}
         fhirName=${{needs.deploy-infra-fhir-service.outputs.fhirName}} isImportEnabled=true
         isInitialImportMode=true importStorageAcctName=${{needs.deploy-storage-acct.outputs.storage-acct-name}}' 
+
+      # fire the fhir service $import endpoint
+    - name: fire-import-endpoint
+      run: |
+        fhirUrl=https://${{needs.deploy-infra-fhir-service.outputs.fhirWorkspaceName}}-${{needs.deploy-infra-fhir-service.outputs.fhirName}}${{env.FHIR_ENDPT_DOMAIN}}
+        echo "fhirUrl:$fhirUrl"
+      # post to <<FHIR service base URL>>/$import
+      # curl 
+
+      # disable import on the fhir service / import related parameters defaults to false    
+    # - name: enable-fhir-importmode
+    #   uses: azure/arm-deploy@v1.0.9
+    #   with:
+    #     subscriptionId: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+    #     resourceGroupName: ${{ secrets.AZURE_RG }}
+    #     template: ./bicep/ahds-fhir.bicep
+    #     parameters: 'workspaceName=${{needs.deploy-infra-fhir-service.outputs.fhirWorkspaceName}}
+    #     fhirName=${{needs.deploy-infra-fhir-service.outputs.fhirName}}' 
 
