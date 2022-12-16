@@ -133,6 +133,10 @@ jobs:
         storageAcctResourceId=$(az resource list -n "${{steps.get-storage-names.outputs.storage-acct-name}}" --query "[].id" -o tsv)
         spObjectId=$(az ad sp show --id "${{secrets.AZURE_CLIENT_ID}}" --query "id" -o tsv)
         fhirMSIObjId=$(az resource list --name "${{needs.deploy-infra-fhir-service.outputs.fhirWorkspaceName}}/${{needs.deploy-infra-fhir-service.outputs.fhirName}}" --query "[].identity.principalId" -o tsv)        
+        
+        echo "storageAcctResourceId=$storageAcctResourceId"
+        echo "spObjectId=$spObjectId"
+        echo "fhirMSIObjId=$fhirMSIObjId"
 
         az role assignment create \
             --assignee-object-id $spObjectId \
@@ -226,6 +230,7 @@ jobs:
             },
           ]
         }"
+        echo "importModeBody=$importModeBody"
         token=$(az account get-access-token --resource=$fhirUrl --query accessToken --output tsv)
         response=$(curl -i -d $importModeBody -H "Prefer:respond-async" -H "Content-Type:application/fhir+json" -H "Authorization: Bearer $token" -X POST $fhirUrl/'$import')
         echo $response
