@@ -54,3 +54,21 @@ jobs:
         run: |
           echo "the var above is ${{steps.test-folded-style.outputs.firstVar}}"
           
+      - name: test multiline
+        run: |
+          aUrl="https://abc.com";
+          importModeBody="{
+            \"resourceType\": \"Parameters\",
+            \"parameter\": [
+              {\"name\":\"inputFormat\", \"valueString\":\"application/fhir+ndjson\"},
+              {\"name\":\"mode\", \"valueString\":\"InitialLoad\"},
+              {\"name\":\"input\",
+                  \"part\": [
+                    {\"name\":\"type\", \"valueString\":\"Patient\"},
+                    {\"name\":\"url\", \"valueUri\":\"$aUrl/Patient.ndjson\"}
+                  ]
+              },
+            ]
+          }"
+          echo "the importModeBody is: $importModeBody";
+          
