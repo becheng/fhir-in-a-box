@@ -19,8 +19,6 @@ jobs:
   build:
     # The type of runner that the job will run on
     runs-on: ubuntu-latest
-    outputs:
-      output1: ${{steps.test-folded-style.outputs.firstVar}}
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
@@ -48,11 +46,11 @@ jobs:
           
           echo "the importModeBody is: $importModeBody";
           echo "second echo only";
-          var2="BAHH"
+          var2="BAHH";
           echo "firstVar=$var2" >> $GITHUB_OUTPUT;
           echo "this is the last echo!";
           
       - name: access the var above
         run: |
-          echo "the var above is ${{steps.test-folded-style.outputs.output1}}"
+          echo "the var above is ${{steps.test-folded-style.outputs.firstVar}}"
           
