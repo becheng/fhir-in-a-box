@@ -71,4 +71,5 @@ jobs:
             ]
           }"
           echo "the importModeBody is: $importModeBody";
+          echo $aUrl/'$import'
           
