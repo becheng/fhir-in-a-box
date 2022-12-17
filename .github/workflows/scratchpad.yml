@@ -44,4 +44,5 @@ jobs:
           }"
           
           echo "the importModeBody is: $importModeBody"
+          echo "this is the second echo!"
           
