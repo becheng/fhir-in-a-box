@@ -56,7 +56,7 @@ jobs:
           
       - name: test multiline
         run: |
-          aUrl="https://abc.com";
+          aUrl="https://abc.com"
           importModeBody="{
             \"resourceType\": \"Parameters\",
             \"parameter\": [
