@@ -42,12 +42,12 @@ jobs:
                   ]
               },
             ]
-          }"
+          }";
           
-          echo "the importModeBody is: $importModeBody"
-          echo "second echo only"
-          echo "firstVar=$importModeBody" >> $GITHUB_OUTPUT
-          echo "this is the last echo!"
+          echo "the importModeBody is: $importModeBody";
+          echo "second echo only";
+          echo "firstVar=$importModeBody" >> $GITHUB_OUTPUT;
+          echo "this is the last echo!";
           
       - name: access the var above
         run: |
