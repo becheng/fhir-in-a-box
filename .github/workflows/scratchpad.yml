@@ -52,5 +52,5 @@ jobs:
           
       - name: access the var above
         run: |
-          echo "the var above is {{steps.test-folded-style.outputs.firstVar}}"
+          echo "the var above is ${{steps.test-folded-style.outputs.firstVar}}"
           
