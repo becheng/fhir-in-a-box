@@ -27,6 +27,7 @@ jobs:
 
       # Runs a single command using the runners shell
       - name: test-folded-style
+        id: test-folded-style
         run: >
           aUrl="https://abc.com"
           importModeBody="{
@@ -44,5 +45,11 @@ jobs:
           }"
           
           echo "the importModeBody is: $importModeBody"
+          echo "second echo only"
+          echo "firstVar=$importModeBody" >> $GITHUB_OUTPUT
+          
           echo "this is the second echo!"
+      - name: access the var above
+        run: |
+          echo "the var above is {{steps.test-folded-style.outputs.importModeBody}}"
           
