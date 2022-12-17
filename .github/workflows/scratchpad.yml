@@ -43,5 +43,5 @@ jobs:
             ]
           }"
           
-          echo "the importModeBody isL $importModeBody"
+          echo "the importModeBody is: $importModeBody"
           
