@@ -19,6 +19,8 @@ jobs:
   build:
     # The type of runner that the job will run on
     runs-on: ubuntu-latest
+    outputs:
+      output1: ${{steps.test-folded-style.outputs.firstVar}}
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
@@ -29,7 +31,7 @@ jobs:
       - name: test-folded-style
         id: test-folded-style
         run: >
-          aUrl="https://abc.com"
+          aUrl="https://abc.com";
           importModeBody="{
             \"resourceType\": \"Parameters\",
             \"parameter\": [
@@ -52,5 +54,5 @@ jobs:
           
       - name: access the var above
         run: |
-          echo "the var above is ${{steps.test-folded-style.outputs.firstVar}}"
+          echo "the var above is ${{steps.test-folded-style.outputs.output1}}"
           
