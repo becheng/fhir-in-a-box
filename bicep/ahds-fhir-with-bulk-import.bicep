@@ -80,8 +80,9 @@ resource storageBlobDataContributorRoleDefinition 'Microsoft.Authorization/roleD
 }
 
 // assign the fhir managed system identity with RBAC role of 'Storage Blob Data Contributor' to the storage acct
+// note: name must be a guid
 resource storageRoleAssignmentWithFhir 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: 'fhirMSIToStorageAcct'
+  name: guid(subscription().id, fhirService.id, storageBlobDataContributorRoleDefinition.id)
   properties: {
     roleDefinitionId: storageBlobDataContributorRoleDefinition.id
     principalId: fhirService.identity.principalId
@@ -90,8 +91,9 @@ resource storageRoleAssignmentWithFhir 'Microsoft.Authorization/roleAssignments@
 }
 
 // assign the service prinicapl object Id with RBAC role of 'Storage Blob Data Contributor' to the storage acct so SP can perform azcopy 
+// note: name must be a guid
 resource storageRoleAssignmentWithSP 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (!empty(azcopyServicePrincipalObjectId)) {
-  name: 'SPToStorageAcct'
+  name: guid(subscription().id, azcopyServicePrincipalObjectId, storageBlobDataContributorRoleDefinition.id)
   properties: {
     roleDefinitionId: storageBlobDataContributorRoleDefinition.id
     principalId: azcopyServicePrincipalObjectId
