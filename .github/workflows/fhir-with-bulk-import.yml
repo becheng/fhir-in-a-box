@@ -87,7 +87,7 @@ jobs:
         isImportEnabled=true isInitialImportMode=true 
         importStorageAcctName=${{steps.get-unique-names.outputs.import-storage-acct-name}}
         bulkImportBlobContainerName=${{steps.get-unique-names.outputs.bulk-import-blob-container-name}}
-        azcopyServicePrincipalObjectId=${{secrets.AZURE_CLIENT_ID}}'
+        azcopyServicePrincipalObjectId=$(az ad sp show --id "${{secrets.AZURE_CLIENT_ID}}" --query "id" -o tsv)'
 
   # job2: seed fhir service with synthea data 
   seed-with-synthea-data:
@@ -141,6 +141,7 @@ jobs:
         AZCOPY_SPA_CLIENT_SECRET: ${{ secrets.AZCOPY_SPA_CLIENT_SECRET }}
 
       # fire the fhir service $import endpoint
+      # Just 'Patient.ndjson' for now
     - name: fire-import-endpoint
       run: |
         fhirUrl=https://${{needs.deploy-fhir-infra.outputs.fhirWorkspaceName}}-${{needs.deploy-fhir-infra.outputs.fhirName}}${{env.FHIR_ENDPT_DOMAIN}}
@@ -153,7 +154,7 @@ jobs:
             {\"name\":\"input\",
                 \"part\": [
                   {\"name\":\"type\", \"valueString\":\"Patient\"},
-                  {\"name\":\"url\", \"valueUri\":\"https://${{needs.deploy-storage-acct.outputs.storage-acct-name}}.blob.core.windows.net/${{needs.deploy-storage-acct.outputs.bulk-import-blob-container-name}}/Patient.ndjson\"}
+                  {\"name\":\"url\", \"valueUri\":\"https://${{needs.deploy-fhir-infra.outputs.import-storage-acct-name}}.blob.core.windows.net/${{needs.deploy-fhir-infra.outputs.bulk-import-blob-container-name}}/Patient.ndjson\"}
                 ]
             },
           ]
@@ -167,55 +168,6 @@ jobs:
         callbackUrl=$(echo $response | sed -n -e 's/^.*content-location: //p' | sed -e 's/\r$//')
         echo $callbackUrl
         curl -X GET $callbackUrl -H "Authorization: Bearer $token" | jq .
-
-
-      # {"name":"input",
-      #     "part": [
-      #       {"name":"type", "valueString":"Claim"},
-      #       {"name":"url", "valueUri":"https://${{needs.deploy-storage-acct.outputs.storage-acct-name}}.blob.core.windows.net/${{needs.deploy-storage-acct.outputs.bulk-import-blob-container-name}}/Claim.ndjson"}
-      #     ]
-      # },
-      # {"name":"input",
-      #     "part": [
-      #       {"name":"type", "valueString":"DiagnosticReport"},
-      #       {"name":"url", "valueUri":"https://${{needs.deploy-storage-acct.outputs.storage-acct-name}}.blob.core.windows.net/${{needs.deploy-storage-acct.outputs.bulk-import-blob-container-name}}/DiagnosticReport.ndjson"}
-      #     ]
-      # },
-      # {"name":"input",
-      #     "part": [
-      #       {"name":"type", "valueString":"DocumentReference"},
-      #       {"name":"url", "valueUri":"https://${{needs.deploy-storage-acct.outputs.storage-acct-name}}.blob.core.windows.net/${{needs.deploy-storage-acct.outputs.bulk-import-blob-container-name}}/DocumentReference.ndjson"}
-      #     ]
-      # },
-      # {"name":"input",
-      #     "part": [
-      #       {"name":"type", "valueString":"Encounter"},
-      #       {"name":"url", "valueUri":"https://${{needs.deploy-storage-acct.outputs.storage-acct-name}}.blob.core.windows.net/${{needs.deploy-storage-acct.outputs.bulk-import-blob-container-name}}/Encounter.ndjson"}
-      #     ]
-      # },
-      # {"name":"input",
-      #     "part": [
-      #       {"name":"type", "valueString":"ExplanationOfBenefit"},
-      #       {"name":"url", "valueUri":"https://${{needs.deploy-storage-acct.outputs.storage-acct-name}}.blob.core.windows.net/${{needs.deploy-storage-acct.outputs.bulk-import-blob-container-name}}/ExplanationOfBenefit.ndjson"}
-      #     ]
-      # },
-      # {"name":"input",
-      #     "part": [
-      #       {"name":"type", "valueString":"Immunization"},
-      #       {"name":"url", "valueUri":"https://${{needs.deploy-storage-acct.outputs.storage-acct-name}}.blob.core.windows.net/${{needs.deploy-storage-acct.outputs.bulk-import-blob-container-name}}/Immunization.ndjson"}
-      #     ]
-      # },
-      # {"name":"input",
-      #     "part": [
-      #       {"name":"type", "valueString":"Provenance"},
-      #       {"name":"url", "valueUri":"https://${{needs.deploy-storage-acct.outputs.storage-acct-name}}.blob.core.windows.net/${{needs.deploy-storage-acct.outputs.bulk-import-blob-container-name}}/Provenance.ndjson"}
-      #     ]
-      # }
-
-      # Location.1671071115132.ndjson
-      # Organization.1671071115132.ndjson
-      # Practitioner.1671071115132.ndjson
-      # PractitionerRole.1671071115132.ndjson
 
       # disable import on the fhir service / import related parameters defaults to false    
     - name: enable-fhir-importmode
