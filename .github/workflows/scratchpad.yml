@@ -90,5 +90,5 @@ jobs:
           )"
           echo $response
           callbackUrl=$(echo $response | sed -n -e 's/^.*content-location: //p' | sed -e 's/\r$//') \
-          echo "###$callbackUrl"###"
+          echo "###$callbackUrl###"
           
