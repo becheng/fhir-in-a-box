@@ -140,6 +140,13 @@ jobs:
       env: 
         AZCOPY_SPA_CLIENT_SECRET: ${{ secrets.AZCOPY_SPA_CLIENT_SECRET }}
 
+      # install jq and other dependencies to run the import
+      # sudo apt update
+      # sudo apt install -y jq
+    - name: install-dependencies
+      run: |
+        jq --version
+
       # fire the fhir service $import endpoint
       # Just 'Patient.ndjson' for now
     - name: fire-import-endpoint
@@ -168,7 +175,7 @@ jobs:
         echo "check if jq is present"
         jq
         echo "call before jq"
-        callbackUrl=$(echo $response | sed -n -e 's/^.*content-location: //p' | sed -e 's/\r$//') \ 
+        callbackUrl=$(echo $response | sed -n -e 's/^.*content-location: //p' | sed -e 's/\n$//') \ 
         echo "call after jq"
         echo "###$callbackUrl###"
         curl -X GET "$callbackUrl" -H "Authorization: Bearer $token" | jq .
