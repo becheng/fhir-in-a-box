@@ -7,7 +7,7 @@ param isImportEnabled bool = false
 param isInitialImportMode bool = false
 param importStorageAcctName string = 'fhirimpsa${uniqueString(resourceGroup().id)}'
 param bulkImportBlobContainerName string = 'bulkimportsrc'
-param azcopyServicePrincipalObjectId string = ''
+param cicdServicePrincipalObjectId string = ''
 
 //Define variables
 var fhirservicename = '${workspaceName}/${fhirName}'
@@ -92,11 +92,11 @@ resource storageRoleAssignmentToFhir 'Microsoft.Authorization/roleAssignments@20
 
 // assign the service principal object Id with RBAC role of 'Storage Blob Data Contributor' to the storage acct so SP can perform azcopy 
 // note: name must be a guid
-resource storageRoleAssignmentToSP 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (!empty(azcopyServicePrincipalObjectId)) {
-  name: guid(subscription().id, azcopyServicePrincipalObjectId, storageBlobDataContributorRoleDefinition.id)
+resource storageRoleAssignmentToSP 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (!empty(cicdServicePrincipalObjectId)) {
+  name: guid(subscription().id, cicdServicePrincipalObjectId, storageBlobDataContributorRoleDefinition.id)
   properties: {
     roleDefinitionId: storageBlobDataContributorRoleDefinition.id
-    principalId: azcopyServicePrincipalObjectId
+    principalId: cicdServicePrincipalObjectId
     principalType: 'ServicePrincipal'
   }
 }
@@ -106,11 +106,11 @@ resource fhirImporterRoleDefinition 'Microsoft.Authorization/roleDefinitions@202
   scope: subscription()
   name: '4465e953-8ced-4406-a58e-0f6e3f3b530b'
 }
-resource fhirRoleAssignmentToSP 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (!empty(azcopyServicePrincipalObjectId)) {
-  name: guid(subscription().id, azcopyServicePrincipalObjectId, storageBlobDataContributorRoleDefinition.id)
+resource fhirRoleAssignmentToSP 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (!empty(cicdServicePrincipalObjectId)) {
+  name: guid(subscription().id, cicdServicePrincipalObjectId, fhirImporterRoleDefinition.id)
   properties: {
     roleDefinitionId: fhirImporterRoleDefinition.id
-    principalId: azcopyServicePrincipalObjectId
+    principalId: cicdServicePrincipalObjectId
     principalType: 'ServicePrincipal'
   }
 }
