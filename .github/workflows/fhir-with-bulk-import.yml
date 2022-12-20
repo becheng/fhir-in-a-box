@@ -166,7 +166,7 @@ jobs:
         response=$(curl -i -d "$importModeBody" -H "Prefer:respond-async" -H "Content-Type:application/fhir+json" -H "Authorization: Bearer $token" -X POST $fhirUrl/'$import')
         echo $response
         callbackUrl=$(echo $response | sed -n -e 's/^.*content-location: //p' | sed -e 's/\r$//') \ 
-        echo "###$callbackUrl###"
+        echo "*****$callbackUrl******"
         curl -X GET "$callbackUrl" -H "Authorization: Bearer $token" | jq .
 
       # disable import on the fhir service / import related parameters defaults to false    
