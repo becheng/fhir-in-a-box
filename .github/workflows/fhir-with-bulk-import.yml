@@ -33,7 +33,7 @@ jobs:
     outputs:
       fhirWorkspaceName: ${{ steps.get-unique-names.outputs.fhirWorkspaceName }} 
       fhirName: ${{ steps.get-unique-names.outputs.fhirName }}
-      import-storage-acct-name: ${{ steps.get-unique-names.outputs.storage-acct-name }} 
+      import-storage-acct-name: ${{ steps.get-unique-names.outputs.import-storage-acct-name }} 
       bulk-import-blob-container-name: ${{ steps.get-unique-names.outputs.bulk-import-blob-container-name }} 
       
     steps:
