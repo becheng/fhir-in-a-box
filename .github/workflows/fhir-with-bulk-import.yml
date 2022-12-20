@@ -31,7 +31,6 @@ jobs:
     runs-on: ubuntu-latest
     environment: sample
     outputs:
-      suffix: ${{ steps.get-unique-names.outputs.suffix }}
       fhirWorkspaceName: ${{ steps.get-unique-names.outputs.fhirWorkspaceName }} 
       fhirName: ${{ steps.get-unique-names.outputs.fhirName }}
       import-storage-acct-name: ${{ steps.get-unique-names.outputs.storage-acct-name }} 
@@ -62,11 +61,11 @@ jobs:
         rsGroupId=$(az group list --query "[?name=='${{ secrets.AZURE_RG }}'].id" -o tsv)        
         suffix=$(echo -n $rsGroupId | shasum | cut -c1-8)
 
-        echo "suffix=$suffix" >> $GITHUB_OUTPUT
         echo "fhirWorkspaceName=ws$suffix" >> $GITHUB_OUTPUT
         echo "fhirName=fhir$suffix" >> $GITHUB_OUTPUT
         echo "import-storage-acct-name=fhirimpsa$suffix" >> $GITHUB_OUTPUT
         echo "bulk-import-blob-container-name=importsrc" >> $GITHUB_OUTPUT
+        echo "azcopySPObjId=$(az ad sp show --id "${{secrets.AZURE_CLIENT_ID}}" --query "id" -o tsv)" >> $GITHUB_OUTPUT
         
         unset rsGroupId
         unset suffix
@@ -87,7 +86,7 @@ jobs:
         isImportEnabled=true isInitialImportMode=true 
         importStorageAcctName=${{steps.get-unique-names.outputs.import-storage-acct-name}}
         bulkImportBlobContainerName=${{steps.get-unique-names.outputs.bulk-import-blob-container-name}}
-        azcopyServicePrincipalObjectId=$(az ad sp show --id "${{secrets.AZURE_CLIENT_ID}}" --query "id" -o tsv)'
+        azcopyServicePrincipalObjectId=${{steps.get-unique-names.outputs.azcopySPObjId}}'
 
   # job2: seed fhir service with synthea data 
   seed-with-synthea-data:
