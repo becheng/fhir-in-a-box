@@ -88,6 +88,9 @@ jobs:
           content-security-policy: frame-src 'self';
           EOF
           )"
+          response="${response//'%'/'%25'}"
+          response="${response//$'\n'/'%0A'}"
+          response="${response//$'\r'/'%0D'}"
           echo $response
           callbackUrl=$(echo $response | sed -n -e 's/^.*content-location: //p' | sed -e 's/\r$//') \
           echo "this is the url: '$callbackUrl'"
