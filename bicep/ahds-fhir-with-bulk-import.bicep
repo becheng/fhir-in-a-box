@@ -82,6 +82,7 @@ resource storageBlobDataContributorRoleDefinition 'Microsoft.Authorization/roleD
 // assign the fhir managed system identity with RBAC role of 'Storage Blob Data Contributor' to the storage acct
 // note: name must be a guid
 resource storageRoleAssignmentToFhir 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  scope: storageAcct
   name: guid(subscription().id, fhirService.id, storageBlobDataContributorRoleDefinition.id)
   properties: {
     roleDefinitionId: storageBlobDataContributorRoleDefinition.id
@@ -93,6 +94,7 @@ resource storageRoleAssignmentToFhir 'Microsoft.Authorization/roleAssignments@20
 // assign the service principal object Id with RBAC role of 'Storage Blob Data Contributor' to the storage acct so SP can perform azcopy 
 // note: name must be a guid
 resource storageRoleAssignmentToSP 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (!empty(cicdServicePrincipalObjectId)) {
+  scope: storageAcct 
   name: guid(subscription().id, cicdServicePrincipalObjectId, storageBlobDataContributorRoleDefinition.id)
   properties: {
     roleDefinitionId: storageBlobDataContributorRoleDefinition.id
@@ -107,6 +109,7 @@ resource fhirImporterRoleDefinition 'Microsoft.Authorization/roleDefinitions@202
   name: '4465e953-8ced-4406-a58e-0f6e3f3b530b'
 }
 resource fhirRoleAssignmentToSP 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (!empty(cicdServicePrincipalObjectId)) {
+  scope: fhirService 
   name: guid(subscription().id, cicdServicePrincipalObjectId, fhirImporterRoleDefinition.id)
   properties: {
     roleDefinitionId: fhirImporterRoleDefinition.id
