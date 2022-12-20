@@ -91,7 +91,6 @@ jobs:
 
   # job2: seed fhir service with synthea data 
   seed-with-synthea-data:
-    #if: ${{ false }} #disables the job
     needs: [deploy-fhir-infra]
     runs-on: ubuntu-latest
     environment: sample
@@ -110,42 +109,42 @@ jobs:
         subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
     
       # Install synthea and generate data
-    - name: install-jdk
-      uses: actions/setup-java@v3.8.0
-      with:
-        distribution: 'microsoft' 
-        java-version: '17'
+    # - name: install-jdk
+    #   uses: actions/setup-java@v3.8.0
+    #   with:
+    #     distribution: 'microsoft' 
+    #     java-version: '17'
     
       # generate Synthea build import, i.e. ndjson dataset
-    - name: install-and-run-synthea
-      run: |
-        java -version
-        mkdir ${{ env.TEMP_DIR_PATH }}
-        curl -L https://github.com/synthetichealth/synthea/releases/download/master-branch-latest/synthea-with-dependencies.jar --output ${{ env.TEMP_DIR_PATH }}/${{ env.SYNTHEA_JAR_NAME }}
-        cd ${{ env.TEMP_DIR_PATH }}
-        java -jar ${{ env.SYNTHEA_JAR_NAME }} -m "${{ secrets.SYNTHEA_MODULE_NAME }}" -p ${{ secrets.SYNTHEA_PATIENTS_NUM }} --exporter.fhir.bulk_data=true
-        ls -l
+    # - name: install-and-run-synthea
+    #   run: |
+    #     java -version
+    #     mkdir ${{ env.TEMP_DIR_PATH }}
+    #     curl -L https://github.com/synthetichealth/synthea/releases/download/master-branch-latest/synthea-with-dependencies.jar --output ${{ env.TEMP_DIR_PATH }}/${{ env.SYNTHEA_JAR_NAME }}
+    #     cd ${{ env.TEMP_DIR_PATH }}
+    #     java -jar ${{ env.SYNTHEA_JAR_NAME }} -m "${{ secrets.SYNTHEA_MODULE_NAME }}" -p ${{ secrets.SYNTHEA_PATIENTS_NUM }} --exporter.fhir.bulk_data=true
+    #     ls -l
     
-      # azcopy synthea data to target storage account
-    - name: azcopy-to-storage
-      run: |
-        ls -l
-        cd ${{ env.TEMP_DIR_PATH }}
-        wget -O azcopy_v10.tar.gz https://aka.ms/downloadazcopy-v10-linux && tar -xf azcopy_v10.tar.gz --strip-components=1
-        ls -l
-        azcopy login --service-principal --application-id ${{ secrets.AZURE_CLIENT_ID }} --tenant-id ${{ secrets.AZURE_TENANT_ID }}
-        azcopy login status
-        echo "STORAGEACCT: https://${{needs.deploy-fhir-infra.outputs.import-storage-acct-name}}.blob.core.windows.net/${{needs.deploy-fhir-infra.outputs.bulk-import-blob-container-name}}/"
-        azcopy cp "./output/fhir/*.*" "https://${{needs.deploy-fhir-infra.outputs.import-storage-acct-name}}.blob.core.windows.net/${{needs.deploy-fhir-infra.outputs.bulk-import-blob-container-name}}/" --recursive=true
-      env: 
-        AZCOPY_SPA_CLIENT_SECRET: ${{ secrets.AZCOPY_SPA_CLIENT_SECRET }}
+    #   # azcopy synthea data to target storage account
+    # - name: azcopy-to-storage
+    #   run: |
+    #     ls -l
+    #     cd ${{ env.TEMP_DIR_PATH }}
+    #     wget -O azcopy_v10.tar.gz https://aka.ms/downloadazcopy-v10-linux && tar -xf azcopy_v10.tar.gz --strip-components=1
+    #     ls -l
+    #     azcopy login --service-principal --application-id ${{ secrets.AZURE_CLIENT_ID }} --tenant-id ${{ secrets.AZURE_TENANT_ID }}
+    #     azcopy login status
+    #     echo "STORAGEACCT: https://${{needs.deploy-fhir-infra.outputs.import-storage-acct-name}}.blob.core.windows.net/${{needs.deploy-fhir-infra.outputs.bulk-import-blob-container-name}}/"
+    #     azcopy cp "./output/fhir/*.*" "https://${{needs.deploy-fhir-infra.outputs.import-storage-acct-name}}.blob.core.windows.net/${{needs.deploy-fhir-infra.outputs.bulk-import-blob-container-name}}/" --recursive=true
+    #   env: 
+    #     AZCOPY_SPA_CLIENT_SECRET: ${{ secrets.AZCOPY_SPA_CLIENT_SECRET }}
 
       # install jq and other dependencies to run the import
       # sudo apt update
       # sudo apt install -y jq
-    - name: install-dependencies
-      run: |
-        jq --version
+      # - name: install-dependencies
+      #   run: |
+      #     jq --version
 
       # fire the fhir service $import endpoint
       # Just 'Patient.ndjson' for now
@@ -174,7 +173,7 @@ jobs:
         echo "$response"
         
         echo "...extracting callbackUrl..."
-        callbackUrl="$(echo $response | sed -n -e 's/^.*content-location: //p' | sed -e 's/\n$//')" \ 
+        callbackUrl="$(echo $response | sed -n -e 's/^.*content-location: //p' | sed -e 's/\n$//')" 
         echo "###$callbackUrl###"
 
         curl -X GET "$callbackUrl" -H "Authorization: Bearer $token" | jq .
