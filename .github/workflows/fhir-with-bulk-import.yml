@@ -86,7 +86,7 @@ jobs:
         isImportEnabled=true isInitialImportMode=true 
         importStorageAcctName=${{steps.get-unique-names.outputs.import-storage-acct-name}}
         bulkImportBlobContainerName=${{steps.get-unique-names.outputs.bulk-import-blob-container-name}}
-        azcopyServicePrincipalObjectId=${{steps.get-unique-names.outputs.azcopySPObjId}}'
+        cicdServicePrincipalObjectId=${{steps.get-unique-names.outputs.azcopySPObjId}}'
 
   # job2: seed fhir service with synthea data 
   seed-with-synthea-data:
