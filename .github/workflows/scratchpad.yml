@@ -75,18 +75,22 @@ jobs:
           
       - name: test jq
         run: |
-          response="HTTP/2 202
-          date: Tue, 20 Dec 2022 19:46:50 GMT 
-          server: Kestrel
-          content-location: https://ws09d55b6d-fhir09d55b6d.fhir.azurehealthcareapis.com/_operations/import/21
-          content-length: 0
-          x-request-id: 3921cb6432178c03de589cb97e77d6f3
-          strict-transport-security: max-age=31536000; includeSubDomains
-          x-content-type-options: nosniff
-          x-frame-options: SAMEORIGIN
-          content-security-policy: frame-src 'self';"
-
-          echo $response
-          callbackUrl="$(echo $response | sed -n -e 's/^.*content-location: //p' | sed -e 's/\r$//') \ 
+        response=$(cat <<EOF
+        HTTP/2 202
+        date: Tue, 20 Dec 2022 19:46:50 GMT 
+        server: Kestrel
+        content-location: https://ws09d55b6d-fhir09d55b6d.fhir.azurehealthcareapis.com/_operations/import/21
+        content-length: 0
+        x-request-id: 3921cb6432178c03de589cb97e77d6f3
+        strict-transport-security: max-age=31536000; includeSubDomains
+        x-content-type-options: nosniff
+        x-frame-options: SAMEORIGIN
+        content-security-policy: frame-src 'self';
+        EOF
+        )
+        echo $response
+        callbackUrl=$(echo $response | sed -n -e 's/^.*content-location: //p' | sed -e 's/\r$//') \
+        echo "###$callbackUrl"###"
+        
 
           
