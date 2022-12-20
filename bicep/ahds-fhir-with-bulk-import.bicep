@@ -81,7 +81,7 @@ resource storageBlobDataContributorRoleDefinition 'Microsoft.Authorization/roleD
 
 // assign the fhir managed system identity with RBAC role of 'Storage Blob Data Contributor' to the storage acct
 // note: name must be a guid
-resource storageRoleAssignmentWithFhir 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+resource storageRoleAssignmentToFhir 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   name: guid(subscription().id, fhirService.id, storageBlobDataContributorRoleDefinition.id)
   properties: {
     roleDefinitionId: storageBlobDataContributorRoleDefinition.id
@@ -90,12 +90,26 @@ resource storageRoleAssignmentWithFhir 'Microsoft.Authorization/roleAssignments@
   }
 }
 
-// assign the service prinicapl object Id with RBAC role of 'Storage Blob Data Contributor' to the storage acct so SP can perform azcopy 
+// assign the service principal object Id with RBAC role of 'Storage Blob Data Contributor' to the storage acct so SP can perform azcopy 
 // note: name must be a guid
-resource storageRoleAssignmentWithSP 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (!empty(azcopyServicePrincipalObjectId)) {
+resource storageRoleAssignmentToSP 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (!empty(azcopyServicePrincipalObjectId)) {
   name: guid(subscription().id, azcopyServicePrincipalObjectId, storageBlobDataContributorRoleDefinition.id)
   properties: {
     roleDefinitionId: storageBlobDataContributorRoleDefinition.id
+    principalId: azcopyServicePrincipalObjectId
+    principalType: 'ServicePrincipal'
+  }
+}
+
+// assign the service principal object Id with fhir importer role to the fhir service so SP can call its $import endpoint
+resource fhirImporterRoleDefinition 'Microsoft.Authorization/roleDefinitions@2022-04-01' existing = {
+  scope: subscription()
+  name: '4465e953-8ced-4406-a58e-0f6e3f3b530b'
+}
+resource fhirRoleAssignmentToSP 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (!empty(azcopyServicePrincipalObjectId)) {
+  name: guid(subscription().id, azcopyServicePrincipalObjectId, storageBlobDataContributorRoleDefinition.id)
+  properties: {
+    roleDefinitionId: fhirImporterRoleDefinition.id
     principalId: azcopyServicePrincipalObjectId
     principalType: 'ServicePrincipal'
   }
