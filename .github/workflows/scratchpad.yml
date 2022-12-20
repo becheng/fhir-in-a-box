@@ -87,8 +87,7 @@ jobs:
           x-frame-options: SAMEORIGIN
           content-security-policy: frame-src 'self';
           EOF
-          )
-          "
+          )"
           echo $response
           callbackUrl=$(echo $response | sed -n -e 's/^.*content-location: //p' | sed -e 's/\r$//') \
           echo "###$callbackUrl"###"
