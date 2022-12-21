@@ -97,9 +97,6 @@ jobs:
           callbackUrl=$(echo $response | sed -n -e 's/^.*content-location: //p' | sed -e 's/\n$//') \
           echo "this is the url: '$callbackUrl'"
       
-        # sed -n '/^content-location: /p'
-        #response="${response//$'\n'/'%0A'}"
-        #response="${response//$'\r'/'###'}"
       - name: sed test
         if: ${{ false }} #disables the step
         run: |
