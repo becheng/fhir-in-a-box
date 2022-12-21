@@ -170,7 +170,7 @@ jobs:
         curl -X GET "$callbackUrl" -H "Authorization: Bearer $token" | jq .
 
       # disable import on the fhir service / import related parameters defaults to false    
-    - name: enable-fhir-importmode
+    - name: disable-fhir-import-mode
       uses: azure/arm-deploy@v1.0.9
       with:
         subscriptionId: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
