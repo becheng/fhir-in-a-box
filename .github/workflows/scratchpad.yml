@@ -97,6 +97,7 @@ jobs:
           callbackUrl=$(echo $response | sed -n -e 's/^.*content-location: //p' | sed -e 's/\n$//') \
           echo "this is the url: '$callbackUrl'"
       
+        # sed -n '/^content-location: /p'
       - name: sed test
         run: |
           fhirUrl=https://ws09d55b6d-fhir09d55b6d.fhir.azurehealthcareapis.com
@@ -120,7 +121,7 @@ jobs:
           response=$(curl -i -d "$importModeBody" -H "Prefer:respond-async" -H "Content-Type:application/fhir+json" -H "Authorization: Bearer $token" -X POST $fhirUrl/'$import')
           echo "$response"
           echo "...extracting callbackUrl..."
-          echo "$response" | sed -n '/^content-location: /p'
+          echo "$response" | cat
           callbackUrl="$(echo $response | sed -n '/^content-location: /p')"
           echo "###$callbackUrl###"
 
