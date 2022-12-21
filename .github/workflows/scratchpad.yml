@@ -102,7 +102,7 @@ jobs:
         #echo "...extracting callbackUrl..."
         #callbackUrl=$(echo "$response" | sed -n 's/^content-location:[[:space:]]//p' | sed -e 's/\r//')
       - name: sed test
-        if: ${{ false }} #disables the step
+        #if: ${{ false }} #disables the step
         run: |
           fhirUrl=https://ws736c3e4c-fhir736c3e4c.fhir.azurehealthcareapis.com
           echo $fhirUrl/'$import'
