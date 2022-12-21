@@ -123,7 +123,7 @@ jobs:
           response="${response//$'\n'/'%0A'}"
           echo "$response"
           echo "...extracting callbackUrl..."
-          callbackUrl=$(echo "$response" | sed -n '/^%0Acontent-location: /p') 
+          callbackUrl=$(echo "$response" | sed -n '/^%0Acontent-location:/p') 
           echo "###$callbackUrl###"
 
           
