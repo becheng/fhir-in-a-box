@@ -115,7 +115,6 @@ jobs:
             ]
           }"
           echo "importModeBody=$importModeBody"
-          az logout
           az login --service-principal -u ${{ secrets.AZURE_CLIENT_ID }} -p ${{ secrets.AZCOPY_SPA_CLIENT_SECRET }} --tenant ${{ secrets.AZURE_TENANT_ID }} 
           token=$(az account get-access-token --resource=$fhirUrl --query accessToken --output tsv)
           response=$(curl -i -d "$importModeBody" -H "Prefer:respond-async" -H "Content-Type:application/fhir+json" -H "Authorization: Bearer $token" -X POST $fhirUrl/'$import')
