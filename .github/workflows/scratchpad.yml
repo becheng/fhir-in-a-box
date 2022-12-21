@@ -122,7 +122,7 @@ jobs:
           echo "$response"
           echo "...extracting callbackUrl..."
           echo "$response" | cat
-          callbackUrl="$(echo $response | sed -n '/^content-location: /p')"
+          callbackUrl=$(echo "$response" | sed -n '/^content-location:/p')
           echo "###$callbackUrl###"
 
           
