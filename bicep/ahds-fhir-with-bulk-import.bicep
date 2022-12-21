@@ -104,15 +104,20 @@ resource storageRoleAssignmentToSP 'Microsoft.Authorization/roleAssignments@2022
 }
 
 // assign the service principal object Id with fhir importer role to the fhir service so SP can call its $import endpoint
-resource fhirImporterRoleDefinition 'Microsoft.Authorization/roleDefinitions@2022-04-01' existing = {
+// resource fhirImporterRoleDefinition 'Microsoft.Authorization/roleDefinitions@2022-04-01' existing = {
+//   scope: subscription()
+//   name: '4465e953-8ced-4406-a58e-0f6e3f3b530b'
+//}
+// assign the service principal object Id with 'fhir contributor role' to the fhir service so SP can call its $import endpoint
+resource fhirContributorRoleDefinition 'Microsoft.Authorization/roleDefinitions@2022-04-01' existing = {
   scope: subscription()
-  name: '4465e953-8ced-4406-a58e-0f6e3f3b530b'
+  name: '5a1fc7df-4bf1-4951-a576-89034ee01acd'
 }
 resource fhirRoleAssignmentToSP 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (!empty(cicdServicePrincipalObjectId)) {
   scope: fhirService 
-  name: guid(subscription().id, cicdServicePrincipalObjectId, fhirImporterRoleDefinition.id)
+  name: guid(subscription().id, cicdServicePrincipalObjectId, fhirContributorRoleDefinition.id)
   properties: {
-    roleDefinitionId: fhirImporterRoleDefinition.id
+    roleDefinitionId: fhirContributorRoleDefinition.id
     principalId: cicdServicePrincipalObjectId
     principalType: 'ServicePrincipal'
   }
