@@ -130,4 +130,6 @@ jobs:
       - name: test curl
         # if: ${{ false }} #disables the step
         run: |
+          fhirUrl=https://ws736c3e4c-fhir736c3e4c.fhir.azurehealthcareapis.com
+          token=$(az account get-access-token --resource=$fhirUrl --query accessToken --output tsv)
           curl -X GET ${{steps.sed-test.outputs.importCallBackUrl}} -H "Authorization: Bearer $token" | jq .
