@@ -99,6 +99,7 @@ jobs:
       
         
       - name: sed test
+        id: sed-test
         #if: ${{ false }} #disables the step
         run: |
           fhirUrl=https://ws736c3e4c-fhir736c3e4c.fhir.azurehealthcareapis.com
@@ -124,11 +125,9 @@ jobs:
           echo "...extracting callbackUrl..."
           callbackUrl=$(echo "$response" | sed -n 's/^content-location:[[:space:]]//p' | sed -e 's/\r//')
           echo "###$callbackUrl###"
-
-          curl -X GET "$callbackUrl" -H "Authorization: Bearer $token" | jq .
-        
+          echo "importCallBackUrl=$callbackUrl" >> $GITHUB_OUTPUT
+          
       - name: test curl
-        if: ${{ false }} #disables the step
+        # if: ${{ false }} #disables the step
         run: |
-          callbackUrl="https://ws736c3e4c-fhir736c3e4c.fhir.azurehealthcareapis.com/_operations/import/5"
-          curl -X GET $callbackUrl -H "Authorization: Bearer $token" | jq .
+          curl -X GET ${{steps.sed-test.outputs.importCallBackUrl}} -H "Authorization: Bearer $token" | jq .
