@@ -120,7 +120,7 @@ jobs:
           response=$(curl -i -d "$importModeBody" -H "Prefer:respond-async" -H "Content-Type:application/fhir+json" -H "Authorization: Bearer $token" -X POST $fhirUrl/'$import')
           echo "$response"
           echo "...extracting callbackUrl..."
-          callbackUrl=$(echo $response | sed -n "/content-location: /p")
+          callbackUrl=$(echo $response | sed -n "/^content-location: /p")
           echo "###$callbackUrl###"
 
           
