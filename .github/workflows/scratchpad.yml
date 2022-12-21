@@ -102,7 +102,7 @@ jobs:
         #response="${response//$'\r'/'###'}"
       - name: sed test
         run: |
-          fhirUrl=https://ws09d55b6d-fhir09d55b6d.fhir.azurehealthcareapis.com
+          fhirUrl=https://ws736c3e4c-fhir736c3e4c.fhir.azurehealthcareapis.com
           echo $fhirUrl/'$import'
           importModeBody="{
             \"resourceType\": \"Parameters\",
@@ -112,7 +112,7 @@ jobs:
               {\"name\":\"input\",
                   \"part\": [
                     {\"name\":\"type\", \"valueString\":\"Patient\"},
-                    {\"name\":\"url\", \"valueUri\":\"https://fhirimpsa09d55b6d.blob.core.windows.net/importsrc/Patient.ndjson\"}
+                    {\"name\":\"url\", \"valueUri\":\"https://fhirimpsa736c3e4c.blob.core.windows.net/importsrc/Patient.ndjson\"}
                   ]
               },
             ]
