@@ -134,5 +134,6 @@ jobs:
           fhirUrl=https://ws736c3e4c-fhir736c3e4c.fhir.azurehealthcareapis.com
           token=$(az account get-access-token --resource=$fhirUrl --query accessToken --output tsv)
           jq --version
-          curl -s -X GET ${{steps.sed-test.outputs.importCallBackUrl}} -H "Authorization: Bearer $token" -H "Accept: application/json"         
+          sleep 10
+          curl -X GET ${{steps.sed-test.outputs.importCallBackUrl}} -H "Authorization: Bearer $token" -H "Accept: application/json"         
           
