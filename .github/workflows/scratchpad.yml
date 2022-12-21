@@ -19,6 +19,8 @@ jobs:
   build:
     # The type of runner that the job will run on
     runs-on: ubuntu-latest
+    environment: sample
+
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
@@ -27,6 +29,7 @@ jobs:
 
       # Runs a single command using the runners shell
       - name: test-folded-style
+        if: ${{ false }} #disables the step
         id: test-folded-style
         run: >
           aUrl="https://abc.com";
@@ -51,10 +54,12 @@ jobs:
           echo "this is the last echo!";
           
       - name: access the var above
+        if: ${{ false }} #disables the step
         run: |
           echo "the var above is ${{steps.test-folded-style.outputs.firstVar}}"
           
       - name: test multiline
+        if: ${{ false }} #disables the step
         run: |
           aUrl="https://abc.com"
           importModeBody="{
@@ -91,4 +96,32 @@ jobs:
           echo $response
           callbackUrl=$(echo $response | sed -n -e 's/^.*content-location: //p' | sed -e 's/\n$//') \
           echo "this is the url: '$callbackUrl'"
+      
+      - name: sed test
+        run: |
+          fhirUrl=https://ws09d55b6d-fhir09d55b6d.fhir.azurehealthcareapis.com
+          echo $fhirUrl/'$import'
+          importModeBody="{
+            \"resourceType\": \"Parameters\",
+            \"parameter\": [
+              {\"name\":\"inputFormat\", \"valueString\":\"application/fhir+ndjson\"},
+              {\"name\":\"mode\", \"valueString\":\"InitialLoad\"},
+              {\"name\":\"input\",
+                  \"part\": [
+                    {\"name\":\"type\", \"valueString\":\"Patient\"},
+                    {\"name\":\"url\", \"valueUri\":\"https://fhirimpsa09d55b6d.blob.core.windows.net/importsrc/Patient.ndjson\"}
+                  ]
+              },
+            ]
+          }"
+          echo "importModeBody=$importModeBody"
+          az logout
+          az login --service-principal -u ${{ secrets.AZURE_CLIENT_ID }} -p ${{ secrets.AZCOPY_SPA_CLIENT_SECRET }} --tenant ${{ secrets.AZURE_TENANT_ID }} 
+          token=$(az account get-access-token --resource=$fhirUrl --query accessToken --output tsv)
+          response=$(curl -i -d "$importModeBody" -H "Prefer:respond-async" -H "Content-Type:application/fhir+json" -H "Authorization: Bearer $token" -X POST $fhirUrl/'$import')
+          echo "$response"
+          echo "...extracting callbackUrl..."
+          callbackUrl=$(echo $response | sed -n "/content-location: /p")
+          echo "###$callbackUrl###"
+
           
