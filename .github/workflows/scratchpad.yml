@@ -125,6 +125,13 @@ jobs:
           echo "...extracting callbackUrl..."
           callbackUrl=$(echo "$response" | sed -n 's/^content-location:[[:space:]]//p' | sed -e 's/\r//')
           echo "###$callbackUrl###"
+
+          if [ "https://ws736c3e4c-fhir736c3e4c.fhir.azurehealthcareapis.com/_operations/import/62" = $callbackUrl ]
+            echo "strings are EQUAL"
+          else 
+            echo "string NOT EQUAL"
+          fi
+          
           sleep 15
           curl -X GET "$callbackUrl" -H "Authorization: Bearer $token" | jq .
           
