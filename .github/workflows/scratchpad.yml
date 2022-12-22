@@ -100,7 +100,7 @@ jobs:
         
       - name: sed test
         id: sed-test
-        if: ${{ false }} #disables the step
+        #if: ${{ false }} #disables the step
         run: |
           fhirUrl=https://ws736c3e4c-fhir736c3e4c.fhir.azurehealthcareapis.com
           echo $fhirUrl/'$import'
@@ -123,9 +123,11 @@ jobs:
           response=$(curl -i -d "$importModeBody" -H "Prefer:respond-async" -H "Content-Type:application/fhir+json" -H "Authorization: Bearer $token" -X POST $fhirUrl/'$import')
           echo "$response"
           echo "...extracting callbackUrl..."
-          callbackUrl=$(echo "$response" | sed -n 's/^content-location:[[:space:]]//p' | sed -e 's/\r//')
+          callbackUrl="$(echo $response | sed -n 's/^content-location:[[:space:]]//p' | sed -e 's/\r//')""
           echo "###$callbackUrl###"
-          echo "importCallBackUrl=$callbackUrl" >> $GITHUB_OUTPUT
+          curl -X GET $callbackUrl -H "Authorization: Bearer $token" | jq .
+          
+          #echo "importCallBackUrl=$callbackUrl" >> $GITHUB_OUTPUT
           
         #callbackResp=$(curl -s -X GET ${{steps.sed-test.outputs.importCallBackUrl}} -H "Authorization: Bearer $token")   
       - name: test curl
@@ -139,8 +141,10 @@ jobs:
           #curl --silent --output test.txt -X GET ${{steps.sed-test.outputs.importCallBackUrl}} -H "Authorization: Bearer $token"
           #cat test.txt
           #echo '{"foo": 0}' | jq .
+
+          echo "... hard coded value ..."
           curl -X GET https://ws736c3e4c-fhir736c3e4c.fhir.azurehealthcareapis.com/_operations/import/45 -H "Authorization: Bearer $token" | jq .
-          echo ".... with var replacement..."
+          echo ".... with var replacement ..."
           var1="https://ws736c3e4c-fhir736c3e4c.fhir.azurehealthcareapis.com/_operations/import/45"
           curl -X GET $var1 -H "Authorization: Bearer $token" | jq .
           
