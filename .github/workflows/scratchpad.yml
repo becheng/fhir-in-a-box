@@ -134,7 +134,9 @@ jobs:
           fi
 
           avar="$callbackUrl"
-          sleep 15
+          
+          sleep 30
+          
           curl -X GET "$avar" -H "Authorization: Bearer $token" | jq .
           
           #echo "importCallBackUrl=$callbackUrl" >> $GITHUB_OUTPUT
