@@ -135,7 +135,8 @@ jobs:
           token="$(az account get-access-token --resource=$fhirUrl --query accessToken --output tsv)"
           #output1=$(curl --fail --connect-timeout 3 --retry 3 -X GET ${{steps.sed-test.outputs.importCallBackUrl}} -H "Authorization: Bearer $token" -H "Accept: application/json" | jq .)
           #echo $output1
-          curl --silent --output test.txt -X GET ${{steps.sed-test.outputs.importCallBackUrl}} -H "Authorization: Bearer $token"
-          cat test.txt
+          #curl --silent --output test.txt -X GET ${{steps.sed-test.outputs.importCallBackUrl}} -H "Authorization: Bearer $token"
+          #cat test.txt
+          curl -X GET https://ws736c3e4c-fhir736c3e4c.fhir.azurehealthcareapis.com/_operations/import/45 -H "Authorization: Bearer $token"
           #echo '{"foo": 0}' | jq .
           
