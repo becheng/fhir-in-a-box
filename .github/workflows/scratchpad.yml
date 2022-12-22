@@ -128,8 +128,7 @@ jobs:
           
           echo "...waiting every 30s to call '$callbackUrl' for import status..."
 
-          importResult=''
-          while [ -n "$importResult" ]; do
+          while [ -z "$importResult" ]; do
             sleep 10
             importResult=$(curl -X GET "callbackUrl" -H "Authorization: Bearer $token" | jq .)
             echo "##$importResult##"
