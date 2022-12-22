@@ -126,14 +126,15 @@ jobs:
           callbackUrl=$(echo "$response" | sed -n 's/^content-location:[[:space:]]//p' | sed -e 's/\r//')
           echo "###$callbackUrl###"
 
-          if [ "https://ws736c3e4c-fhir736c3e4c.fhir.azurehealthcareapis.com/_operations/import/69" = $callbackUrl ]; then
+          if [ "https://ws736c3e4c-fhir736c3e4c.fhir.azurehealthcareapis.com/_operations/import/71" = $callbackUrl ]; then
             echo "strings are EQUAL"
           else
             echo "string NOT EQUAL"
           fi
 
+          avar="$callbackUrl"
           sleep 15
-          curl -X GET "$callbackUrl" -H "Authorization: Bearer $token" | jq .
+          curl -X GET "$avar" -H "Authorization: Bearer $token" | jq .
           
           #echo "importCallBackUrl=$callbackUrl" >> $GITHUB_OUTPUT
           
