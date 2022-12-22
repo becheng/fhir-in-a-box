@@ -100,7 +100,7 @@ jobs:
         
       - name: sed test
         id: sed-test
-        #if: ${{ false }} #disables the step
+        if: ${{ false }} #disables the step
         run: |
           fhirUrl=https://ws736c3e4c-fhir736c3e4c.fhir.azurehealthcareapis.com
           echo $fhirUrl/'$import'
@@ -137,6 +137,9 @@ jobs:
           #echo $output1
           #curl --silent --output test.txt -X GET ${{steps.sed-test.outputs.importCallBackUrl}} -H "Authorization: Bearer $token"
           #cat test.txt
-          curl -X GET https://ws736c3e4c-fhir736c3e4c.fhir.azurehealthcareapis.com/_operations/import/45 -H "Authorization: Bearer $token"
           #echo '{"foo": 0}' | jq .
+          curl -X GET https://ws736c3e4c-fhir736c3e4c.fhir.azurehealthcareapis.com/_operations/import/45 -H "Authorization: Bearer $token" | jq .
+          echo ".... with var replacement..."
+          var1="https://ws736c3e4c-fhir736c3e4c.fhir.azurehealthcareapis.com/_operations/import/45"
+          curl -X GET $var1 -H "Authorization: Bearer $token" | jq .
           
