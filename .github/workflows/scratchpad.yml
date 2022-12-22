@@ -125,13 +125,14 @@ jobs:
           echo "$response"
           
           callbackUrl=$(echo "$response" | sed -n 's/^content-location:[[:space:]]//p' | sed -e 's/\r//')
-          
-          echo "...waiting every 30s to call '$callbackUrl' for import status..."
+          echo "...calling '$callbackUrl' in a loop to retrieve import status..."
 
+          counter=1
           while [ -z "$importResult" ]; do
             sleep 10
+            echo "...attempt #: $counter" 
             importResult=$(curl -X GET "$callbackUrl" -H "Authorization: Bearer $token" | jq .)
-            echo "##$importResult##"
+            ((counter++))
           done
 
         #callbackResp=$(curl -s -X GET ${{steps.sed-test.outputs.importCallBackUrl}} -H "Authorization: Bearer $token")   
