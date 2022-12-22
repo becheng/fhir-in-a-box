@@ -126,7 +126,8 @@ jobs:
           callbackUrl=$(echo "$response" | sed -n 's/^content-location:[[:space:]]//p' | sed -e 's/\r//')
           echo "###$callbackUrl###"
 
-          if [ "https://ws736c3e4c-fhir736c3e4c.fhir.azurehealthcareapis.com/_operations/import/71" = $callbackUrl ]; then
+          compareVar="https://ws736c3e4c-fhir736c3e4c.fhir.azurehealthcareapis.com/_operations/import/73"
+          if [  "$compareVar" = "$callbackUrl" ]; then
             echo "strings are EQUAL"
           else
             echo "string NOT EQUAL"
@@ -137,10 +138,13 @@ jobs:
           curl -X GET "$avar" -H "Authorization: Bearer $token" | jq .
           
           #echo "importCallBackUrl=$callbackUrl" >> $GITHUB_OUTPUT
+
+          echo "calling with hardcoded var"
+          curl -X GET "$compareVar" -H "Authorization: Bearer $token" | jq .
           
         #callbackResp=$(curl -s -X GET ${{steps.sed-test.outputs.importCallBackUrl}} -H "Authorization: Bearer $token")   
       - name: test curl
-        # if: ${{ false }} #disables the step
+        if: ${{ false }} #disables the step
         run: |
           az login --service-principal -u ${{ secrets.AZURE_CLIENT_ID }} -p ${{ secrets.AZCOPY_SPA_CLIENT_SECRET }} --tenant ${{ secrets.AZURE_TENANT_ID }} 
           fhirUrl=https://ws736c3e4c-fhir736c3e4c.fhir.azurehealthcareapis.com
