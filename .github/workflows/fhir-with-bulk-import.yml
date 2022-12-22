@@ -163,11 +163,19 @@ jobs:
         az login --service-principal -u ${{ secrets.AZURE_CLIENT_ID }} -p ${{ secrets.AZCOPY_SPA_CLIENT_SECRET }} --tenant ${{ secrets.AZURE_TENANT_ID }} 
         token=$(az account get-access-token --resource=$fhirUrl --query accessToken --output tsv)
         response=$(curl -i -d "$importModeBody" -H "Prefer:respond-async" -H "Content-Type:application/fhir+json" -H "Authorization: Bearer $token" -X POST $fhirUrl/'$import')
-        echo "$response"
-        echo "...extracting callbackUrl..."
+
         callbackUrl=$(echo "$response" | sed -n 's/^content-location:[[:space:]]//p' | sed -e 's/\r//')
-        echo "###$callbackUrl###"
-        curl -X GET "$callbackUrl" -H "Authorization: Bearer $token" | jq .
+        echo "...calling '$callbackUrl' in a loop to retrieve import status..."
+
+        counter=1
+        while [ -z "$importResult" ]; do
+          sleep 20
+          echo "...attempt #: $counter" 
+          importResult=$(curl -s -X GET "$callbackUrl" -H "Authorization: Bearer $token" | jq .)
+          ((counter++))
+        done
+
+        printf "final result: \n$importResult"
 
       # disable import on the fhir service / import related parameters defaults to false    
     - name: disable-fhir-import-mode
