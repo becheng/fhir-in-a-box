@@ -131,6 +131,7 @@ jobs:
       - name: test curl
         # if: ${{ false }} #disables the step
         run: |
+          az login --service-principal -u ${{ secrets.AZURE_CLIENT_ID }} -p ${{ secrets.AZCOPY_SPA_CLIENT_SECRET }} --tenant ${{ secrets.AZURE_TENANT_ID }} 
           fhirUrl=https://ws736c3e4c-fhir736c3e4c.fhir.azurehealthcareapis.com
           token="$(az account get-access-token --resource=$fhirUrl --query accessToken --output tsv)"
           #output1=$(curl --fail --connect-timeout 3 --retry 3 -X GET ${{steps.sed-test.outputs.importCallBackUrl}} -H "Authorization: Bearer $token" -H "Accept: application/json" | jq .)
