@@ -176,9 +176,15 @@ jobs:
         done
 
         printf "final result: \n$importResult"
+        
+        //TODO: check if for errors in the result
+
+        printf "\n...waiting 30 secs to ensure import process is finished before calling next job..."
+        sleep 30
 
       # disable import on the fhir service / import related parameters defaults to false    
     - name: disable-fhir-import-mode
+      if: ${{ false }} #disables the step  //TODO: set   
       uses: azure/arm-deploy@v1.0.9
       with:
         subscriptionId: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
