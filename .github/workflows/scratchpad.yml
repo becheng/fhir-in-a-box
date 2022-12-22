@@ -118,32 +118,22 @@ jobs:
             ]
           }"
           echo "importModeBody=$importModeBody"
+          
           az login --service-principal -u ${{ secrets.AZURE_CLIENT_ID }} -p ${{ secrets.AZCOPY_SPA_CLIENT_SECRET }} --tenant ${{ secrets.AZURE_TENANT_ID }} 
           token="$(az account get-access-token --resource=$fhirUrl --query accessToken --output tsv)"
           response=$(curl -i -d "$importModeBody" -H "Prefer:respond-async" -H "Content-Type:application/fhir+json" -H "Authorization: Bearer $token" -X POST $fhirUrl/'$import')
           echo "$response"
-          echo "...extracting callbackUrl..."
+          
           callbackUrl=$(echo "$response" | sed -n 's/^content-location:[[:space:]]//p' | sed -e 's/\r//')
-          echo "###$callbackUrl###"
+          
+          echo "...waiting every 30s to call '$callbackUrl' for import status..."
 
-          compareVar="https://ws736c3e4c-fhir736c3e4c.fhir.azurehealthcareapis.com/_operations/import/73"
-          if [  "$compareVar" = "$callbackUrl" ]; then
-            echo "strings are EQUAL"
-          else
-            echo "string NOT EQUAL"
-          fi
+          while [ -n "$importResult" ]; do
+            sleep 10
+            importResult=$(curl -X GET "callbackUrl" -H "Authorization: Bearer $token" | jq .)
+            echo $importResult
+          done
 
-          avar="$callbackUrl"
-          
-          sleep 30
-          
-          curl -X GET "$avar" -H "Authorization: Bearer $token" | jq .
-          
-          #echo "importCallBackUrl=$callbackUrl" >> $GITHUB_OUTPUT
-
-          echo "calling with hardcoded var"
-          curl -X GET "$compareVar" -H "Authorization: Bearer $token" | jq .
-          
         #callbackResp=$(curl -s -X GET ${{steps.sed-test.outputs.importCallBackUrl}} -H "Authorization: Bearer $token")   
       - name: test curl
         if: ${{ false }} #disables the step
