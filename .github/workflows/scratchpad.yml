@@ -129,11 +129,13 @@ jobs:
 
           counter=1
           while [ -z "$importResult" ]; do
-            sleep 10
+            sleep 20
             echo "...attempt #: $counter" 
-            importResult=$(curl -X GET "$callbackUrl" -H "Authorization: Bearer $token" | jq .)
+            importResult=$(curl -s -X GET "$callbackUrl" -H "Authorization: Bearer $token" | jq .)
             ((counter++))
           done
+
+          echo $importResult
 
         #callbackResp=$(curl -s -X GET ${{steps.sed-test.outputs.importCallBackUrl}} -H "Authorization: Bearer $token")   
       - name: test curl
