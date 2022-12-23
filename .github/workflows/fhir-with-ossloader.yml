@@ -99,7 +99,7 @@ jobs:
         bash ./deployFhirBulk.bash \
          -i ${{secrets.AZURE_SUBSCRIPTION_ID}} \
          -g ${{secrets.AZURE_RG}} \
-         -l ${{steps.get-resource-names.outputs.rgLocation} \
+         -l ${{steps.get-resource-names.outputs.rgLocation}} \
          -n ${{steps.get-resource-names.outputs.ossFhirLoaderDeployPrefix}} \
          -k ${{steps.get-resource-names.outputs.kvName}} \
          -o "fhir"
