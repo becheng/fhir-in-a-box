@@ -79,7 +79,7 @@ jobs:
       with:
         subscriptionId: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
         resourceGroupName: ${{ secrets.AZURE_RG }}
-        template: ./bicep/ahds-fhir-with-ossloader.bicep
+        template: ./bicep/ahds-fhir-with-ossfhirloader.bicep
         parameters: 'workspaceName=${{steps.get-resource-names.outputs.fhirWorkspaceName}}
         fhirName=${{steps.get-resource-names.outputs.fhirName}}
         kvName=${{steps.get-resource-names.outputs.kvName}}
