@@ -1,0 +1,127 @@
+name: fhir-with-ossloader
+
+on:
+  # Triggers the workflow on push or pull request events but only for the "main" branch
+  # push:
+  #   branches: [ "main" ]
+  # pull_request:
+  #   branches: [ "main" ]
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+env:
+  TEMP_DIR_PATH: './tmp'
+  OSS_FHIR_LOADER_DEPLOY_SCRIPT: 'deployFhirBulk.bash '
+  FHIR_ENDPT_DOMAIN: '.fhir.azurehealthcareapis.com'
+
+defaults:
+  run:
+    shell: bash
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+
+  # job1: deploy the ahds workspace with a fhir service
+  deploy-fhir-infra:
+    #if: ${{ false }} #disables the job
+    runs-on: ubuntu-latest
+    environment: sample
+    outputs:
+      fhirWorkspaceName: ${{ steps.get-unique-names.outputs.fhirWorkspaceName }} 
+      fhirName: ${{ steps.get-unique-names.outputs.fhirName }}
+
+    steps:
+
+      # checkout 
+    - uses: actions/checkout@v3
+
+      # log into Azure
+    - name: az-login
+      uses: Azure/login@v1.4.6
+      with:
+        client-id: ${{ secrets.AZURE_CLIENT_ID }}
+        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+    
+      # hash the resource group's ID so it's unique but also repeatable
+      # steps: 
+      # 1. retrieve the resouceGroup's id property
+      # 2. hash the id and take the first 8 chars of the hash
+      # 3. set the output using the hash substring
+    - name: generate resource names 
+      id: get-resource-names
+      run: |
+        rsGroupId=$(az group list --query "[?name=='${{ secrets.AZURE_RG }}'].id" -o tsv)        
+        suffix=$(echo -n $rsGroupId | shasum | cut -c1-8)
+
+        echo "fhirWorkspaceName=ws$suffix" >> $GITHUB_OUTPUT
+        echo "fhirName=fhir$suffix" >> $GITHUB_OUTPUT
+        echo "kvName=kv$suffix" >> $GITHUB_OUTPUT
+        echo "cicdSPObjId=$(az ad sp show --id "${{secrets.AZURE_CLIENT_ID}}" --query "id" -o tsv)" >> $GITHUB_OUTPUT
+        echo "ossFhirLoaderDeployPrefix=ofl$suffix" >> $GITHUB_OUTPUT
+        echo "rgLocation=$(az group show -g "fhir-in-a-box-v3" --query "location" -o tsv)" >> $GITHUB_OUTPUT
+
+        unset rsGroupId
+        unset suffix
+        
+      # deploy uisng bicep - deploys the fhir service and its storage account to perform bulk import
+      # Important note: you cannot set the fhir service endpoint, it is automatically set by
+      # resource based on the workspaceName and the fhirName with a format of
+      # 'https://${workspaceName}-${fhirName}.fhir.azurehealthcareapis.com' 
+      # @TODO: change fhir+Suffix to be unique within the AHDS workspace
+    - name: deploy-fhir-infra
+      #if: ${{ false }} #disables the step
+      uses: azure/arm-deploy@v1.0.9
+      with:
+        subscriptionId: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+        resourceGroupName: ${{ secrets.AZURE_RG }}
+        template: ./bicep/ahds-fhir-with-bulk-import.bicep
+        parameters: 'workspaceName=${{steps.get-unique-names.outputs.fhirWorkspaceName}}
+        fhirName=${{steps.get-unique-names.outputs.fhirName}}
+        kvName=${{steps.get-unique-names.outputs.kvName}}
+        cicdServicePrincipalObjectId=${{steps.get-unique-names.outputs.cicdSPObjId}}'
+
+      # download oss fhir loader deploy script
+    - name: download oss fhir loader deploy script
+      run: |
+        mkdir ${{ env.TEMP_DIR_PATH }}
+        curl -L https://raw.githubusercontent.com/microsoft/fhir-loader/main/scripts/deployFhirBulk.bash \
+         --output ${{ env.TEMP_DIR_PATH }}/${{ env.OSS_FHIR_LOADER_DEPLOY_SCRIPT }}
+
+      # deploy fhir loader
+    - name: deploy-oss-fhir-loader
+      run: |
+        cd ${{ env.TEMP_DIR_PATH }}
+        bash ./deployFhirBulk.bash \
+         -i ${{secrets.AZURE_SUBSCRIPTION_ID}} \
+         -g ${{secrets.AZURE_RG}} \
+         -l ${{steps.get-unique-names.outputs.rgLocation} \
+         -n ${{steps.get-unique-names.outputs.ossFhirLoaderDeployPrefix}} \
+         -k ${{steps.get-unique-names.outputs.kvName}} \
+         -o "fhir"
+        
+
+  # job2: seed fhir service with synthea data 
+  seed-with-synthea-data:
+    if: ${{ false }} #disables the step
+    needs: [deploy-fhir-infra]
+    runs-on: ubuntu-latest
+    environment: sample
+
+    steps:
+
+      # checkout 
+    - uses: actions/checkout@v3
+
+      # log into Azure
+    - name: az-login
+      uses: Azure/login@v1.4.6
+      with:
+        client-id: ${{ secrets.AZURE_CLIENT_ID }}
+        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+    
