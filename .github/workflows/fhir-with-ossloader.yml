@@ -67,12 +67,9 @@ jobs:
 
         unset rsGroupId
         unset suffix
-        
-      # deploy uisng bicep - deploys the fhir service and its storage account to perform bulk import
-      # Important note: you cannot set the fhir service endpoint, it is automatically set by
-      # resource based on the workspaceName and the fhirName with a format of
-      # 'https://${workspaceName}-${fhirName}.fhir.azurehealthcareapis.com' 
-      # @TODO: change fhir+Suffix to be unique within the AHDS workspace
+
+      # deploy fhir service and related workloads       
+      # kvName=${{steps.get-resource-names.outputs.kvName}}
     - name: deploy-fhir-infra
       #if: ${{ false }} #disables the step
       uses: azure/arm-deploy@v1.0.9
@@ -82,21 +79,22 @@ jobs:
         template: ./bicep/ahds-fhir-with-ossfhirloader.bicep
         parameters: 'workspaceName=${{steps.get-resource-names.outputs.fhirWorkspaceName}}
         fhirName=${{steps.get-resource-names.outputs.fhirName}}
-        kvName=${{steps.get-resource-names.outputs.kvName}}
         cicdServicePrincipalObjectId=${{steps.get-resource-names.outputs.cicdSPObjId}}'
 
-      # download oss fhir loader deploy script
+      # download oss fhir loader deploy script 
+      # 1. comment out the user prompts, e.g. 'read -p...'
     - name: download oss fhir loader deploy script
       run: |
         mkdir ${{ env.TEMP_DIR_PATH }}
         curl -L https://raw.githubusercontent.com/microsoft/fhir-loader/main/scripts/deployFhirBulk.bash \
          --output ${{ env.TEMP_DIR_PATH }}/${{ env.OSS_FHIR_LOADER_DEPLOY_SCRIPT }}
+        sed -i '/.*read -p/ s/./#&/' ${{ env.TEMP_DIR_PATH }}/${{ env.OSS_FHIR_LOADER_DEPLOY_SCRIPT }}       
 
       # deploy fhir loader
     - name: deploy-oss-fhir-loader
       run: |
         cd ${{ env.TEMP_DIR_PATH }}
-        bash ./deployFhirBulk.bash \
+        bash ./${{ env.OSS_FHIR_LOADER_DEPLOY_SCRIPT }} \
          -i ${{secrets.AZURE_SUBSCRIPTION_ID}} \
          -g ${{secrets.AZURE_RG}} \
          -l ${{steps.get-resource-names.outputs.rgLocation}} \

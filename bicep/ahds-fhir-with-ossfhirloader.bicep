@@ -3,8 +3,8 @@ param workspaceName string = 'ws${uniqueString(resourceGroup().id)}'
 param fhirName string = 'fhir${uniqueString(resourceGroup().id)}'
 param tenantId string = subscription().tenantId
 param location string = resourceGroup().location
-param kvName string = 'kv${uniqueString(resourceGroup().id)}'
 param cicdServicePrincipalObjectId string = ''
+// param kvName string = 'kv${uniqueString(resourceGroup().id)}'
 
 //Define variables
 var fhirservicename = '${workspaceName}/${fhirName}'
@@ -41,36 +41,37 @@ resource fhirService 'Microsoft.HealthcareApis/workspaces/fhirservices@2022-06-0
 }
 
 // create key vault
-resource keyvault 'Microsoft.KeyVault/vaults@2022-07-01' = {
-  name: kvName
-  location: location
-  properties: {
-    accessPolicies: [
-      {
-        objectId:  cicdServicePrincipalObjectId
-        permissions: {
-          secrets: [
-            'get'
-            'list'
-            'set'  
-          ]
-        }
-        tenantId: tenantId
-      }
-    ]
-    sku: {
-      family: 'A'
-      name: 'standard'
-    }
-    tenantId: tenantId
-  }
-}
+// resource keyvault 'Microsoft.KeyVault/vaults@2022-07-01' = {
+//   name: kvName
+//   location: location
+//   properties: {
+//     accessPolicies: [
+//       {
+//         objectId:  cicdServicePrincipalObjectId
+//         permissions: {
+//           secrets: [
+//             'get'
+//             'list'
+//             'set'  
+//           ]
+//         }
+//         tenantId: tenantId
+//       }
+//     ]
+//     sku: {
+//       family: 'A'
+//       name: 'standard'
+//     }
+//     tenantId: tenantId
+//   }
+// }
 
 // assign the service principal object Id with 'fhir contributor role' to the fhir service 
 resource fhirContributorRoleDefinition 'Microsoft.Authorization/roleDefinitions@2022-04-01' existing = {
   scope: subscription()
   name: '5a1fc7df-4bf1-4951-a576-89034ee01acd'
 }
+// create the role assignment
 resource fhirRoleAssignmentToSP 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (!empty(cicdServicePrincipalObjectId)) {
   scope: fhirService 
   name: guid(subscription().id, cicdServicePrincipalObjectId, fhirContributorRoleDefinition.id)
