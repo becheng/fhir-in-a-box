@@ -2,8 +2,8 @@ name: fhir-with-ossloader
 
 on:
   # Triggers the workflow on push or pull request events but only for the "main" branch
-  # push:
-  #   branches: [ "main" ]
+  push:
+    branches: [ "main" ]
   # pull_request:
   #   branches: [ "main" ]
 
@@ -14,6 +14,7 @@ env:
   TEMP_DIR_PATH: './tmp'
   OSS_FHIR_LOADER_DEPLOY_SCRIPT: 'deployFhirBulk.bash '
   FHIR_ENDPT_DOMAIN: '.fhir.azurehealthcareapis.com'
+  SYNTHEA_DATA_TYPE: ${{secrets.SYNTHEA_DATA_TYPE}}
 
 defaults:
   run:
@@ -68,8 +69,53 @@ jobs:
         unset rsGroupId
         unset suffix
 
+    - name: create fhir client app/SP for the fhir-loader
+      id: create-fhir-client-app
+      run: |
+        fhirClientName="${{steps.get-resource-names.outputs.ossFhirLoaderDeployPrefix}}-fhir-app"
+        fhirServiceName="${{steps.get-resource-names.outputs.fhirWorkspaceName}}/${{steps.get-resource-names.outputs.fhirName}}" 
+        replyUrls="https://oauth.pstmn.io/v1/callback" # postman client for now
+        healthCareAPIsPermissionAppId="4f6778d8-5aef-43dc-a1ff-b073724b9495" # should be referenced in ms_docs
+        fhirDataContributorRole="FHIR Data Contributor"
+        
+        echo "...creating fhir-loader aad app.."
+        fhirClientAppId=$(az ad app create --display-name $fhirClientName --web-redirect-uri $replyUrls --query "appId" -o tsv) 
+        
+        sleep 10
+        
+        echo "...creating fhir-loader aad SP.."
+        az ad sp create --id $fhirClientAppId
+        fhirClientAppSecret=$(az ad app credential reset --id $fhirClientAppId --display-name "client-secret" --query password -o tsv)
+
+        echo "...assigning SP a fhir rbac role to the fhir service "
+        fhirClientObjectId=$(az ad sp list --display-name "$fhirClientName" --query "[].id" -o tsv)
+        fhirResourceId=$(az resource list --name "$fhirServiceName" --query "[].id" -o tsv)
+
+        roleAssignId1=$(az role assignment create \
+            --assignee "$fhirClientObjectId" \
+            --role "$fhirDataContributorRole" \
+            --scope $fhirResourceId --query "id" -o tsv)
+
+        echo "......adding Azure Healthcare APIs permission"
+        hcApisUserImpersonationScopeId=$(az ad sp list --filter "appId eq '$healthCareAPIsPermissionAppId'" --query "[].oauth2PermissionScopes[?value=='user_impersonation'].id" -o tsv)
+
+        # check if the permission has already been added 
+        isHCApiExists=$(az ad app permission list --id "$fhirClientAppId" --query "[].resourceAccess[?id=='$hcApisUserImpersonationScopeId'].id" -o tsv)
+        if [ -z  "$isHCApiExists" ] 
+        then 
+            # add the hcAPI permission and user_impersonation scope
+            az ad app permission add \
+            --id $fhirClientAppId \
+            --api $healthCareAPIsPermissionAppId \
+            --api-permissions $hcApisUserImpersonationScopeId=Scope
+        else
+            echo ".........Azure Healthcare APIs permission already exists, skipping permission add."
+        fi
+
+        echo "fsClientId=$fhirClientAppId" >>$GITHUB_OUTPUT 
+        echo "fsClientSecret=$fhirClientAppSecret" >>$GITHUB_OUTPUT 
+  
       # deploy fhir service and related workloads       
-      # kvName=${{steps.get-resource-names.outputs.kvName}}
     - name: deploy-fhir-infra
       #if: ${{ false }} #disables the step
       uses: azure/arm-deploy@v1.0.9
@@ -79,7 +125,13 @@ jobs:
         template: ./bicep/ahds-fhir-with-ossfhirloader.bicep
         parameters: 'workspaceName=${{steps.get-resource-names.outputs.fhirWorkspaceName}}
         fhirName=${{steps.get-resource-names.outputs.fhirName}}
-        cicdServicePrincipalObjectId=${{steps.get-resource-names.outputs.cicdSPObjId}}'
+        kvName=${{steps.get-resource-names.outputs.kvName}}
+        cicdServicePrincipalObjectId=${{steps.get-resource-names.outputs.cicdSPObjId}}
+        fsUrlSecretValue=https://${{needs.deploy-fhir-infra.outputs.fhirWorkspaceName}}-${{needs.deploy-fhir-infra.outputs.fhirName}}${{env.FHIR_ENDPT_DOMAIN}}
+        fsResourceSecretValue=https://${{needs.deploy-fhir-infra.outputs.fhirWorkspaceName}}-${{needs.deploy-fhir-infra.outputs.fhirName}}${{env.FHIR_ENDPT_DOMAIN}}
+        fsTenantIdSecretValue=${{secrets.AZURE_TENANT_ID}}
+        fsClientIdSecretValue=${{steps.create-fhir-client-app.outputs.fsClientId}}
+        fsClientSecretSecretValue=${{steps.create-fhir-client-app.outputs.fsClientSecret}}'
 
       # download oss fhir loader deploy script 
       # 1. comment out the user prompts, e.g. 'read -p...'
@@ -123,3 +175,55 @@ jobs:
         tenant-id: ${{ secrets.AZURE_TENANT_ID }}
         subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
     
+      # Install synthea and generate data
+    - name: install-jdk
+      uses: actions/setup-java@v3.8.0
+      with:
+        distribution: 'microsoft' 
+        java-version: '17'
+    
+      # generate Synthea build import either as FHIR bundles (transactional or batch), ndjson FHIR bundles,  or compressed (.zip) FHIR Bundles
+      # ref for synthea options: https://github.com/synthetichealth/synthea/wiki/HL7-FHIR
+    # - name: install-and-run-synthea
+    #   run: |
+    #     java -version
+    #     mkdir ${{ env.TEMP_DIR_PATH }}
+    #     curl -L https://github.com/synthetichealth/synthea/releases/download/master-branch-latest/synthea-with-dependencies.jar \
+    #      --output ${{ env.TEMP_DIR_PATH }}/${{ env.SYNTHEA_JAR_NAME }}
+        
+    #     syntheaOptions=''
+    #     if ['zip' = ${{ env.SYNTHEA_DATA_TYPE }}] 
+    #     then
+    #       echo "...generating synthea zip files..."
+    #       $syntheaOptons=''
+    #     elif ['ndson' = ${{ env.SYNTHEA_DATA_TYPE }}]
+    #     then
+    #       echo "...generating synthea ndjson files..."
+    #       $syntheaOptons='--exporter.fhir.bulk_data=true'
+    #     else
+    #       echo "...generating synthea bundle files..."
+    #       $syntheaOptons=''
+    #     fi
+
+    #     cd ${{ env.TEMP_DIR_PATH }}
+        
+    #     java -jar ${{ env.SYNTHEA_JAR_NAME }} \
+    #      -m "${{ secrets.SYNTHEA_MODULE_NAME }}" \
+    #      -p ${{ secrets.SYNTHEA_PATIENTS_NUM }} \
+    #      $syntheaOptons
+
+    #     ls -l
+    
+    #   # azcopy synthea data to target storage account
+    # - name: azcopy-to-storage
+    #   run: |
+    #     ls -l
+    #     cd ${{ env.TEMP_DIR_PATH }}
+    #     wget -O azcopy_v10.tar.gz https://aka.ms/downloadazcopy-v10-linux && tar -xf azcopy_v10.tar.gz --strip-components=1
+    #     ls -l
+    #     azcopy login --service-principal --application-id ${{ secrets.AZURE_CLIENT_ID }} --tenant-id ${{ secrets.AZURE_TENANT_ID }}
+    #     azcopy login status
+    #     echo "STORAGEACCT: https://${{needs.deploy-fhir-infra.outputs.import-storage-acct-name}}.blob.core.windows.net/${{needs.deploy-fhir-infra.outputs.bulk-import-blob-container-name}}/"
+    #     azcopy cp "./output/fhir/*.*" "https://${{needs.deploy-fhir-infra.outputs.import-storage-acct-name}}.blob.core.windows.net/${{needs.deploy-fhir-infra.outputs.bulk-import-blob-container-name}}/" --recursive=true
+    #   env: 
+    #     AZCOPY_SPA_CLIENT_SECRET: ${{ secrets.AZCOPY_SPA_CLIENT_SECRET }}
