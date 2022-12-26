@@ -69,6 +69,8 @@ jobs:
         unset rsGroupId
         unset suffix
 
+      # create aad fhir client app for the loader
+      # TODO: assign the gh app/sp with Cloud Application administrator via a PIM Active Assignment 
     - name: create fhir client app/SP for the fhir-loader
       id: create-fhir-client-app
       run: |
@@ -111,6 +113,10 @@ jobs:
         else
             echo ".........Azure Healthcare APIs permission already exists, skipping permission add."
         fi
+
+        # mask the client id and secret
+        echo "::add-mask::$fhirClientAppId"
+        echo "::add-mask::$fhirClientAppSecret"
 
         echo "fsClientId=$fhirClientAppId" >>$GITHUB_OUTPUT 
         echo "fsClientSecret=$fhirClientAppSecret" >>$GITHUB_OUTPUT 

@@ -4,7 +4,12 @@ param fhirName string = 'fhir${uniqueString(resourceGroup().id)}'
 param tenantId string = subscription().tenantId
 param location string = resourceGroup().location
 param cicdServicePrincipalObjectId string = ''
-// param kvName string = 'kv${uniqueString(resourceGroup().id)}'
+param kvName string = 'kv${uniqueString(resourceGroup().id)}'
+param fsUrlSecretValue string = '' // e.g. https://ws35d75573-fhir35d75573.fhir.azurehealthcareapis.com
+param fsTenantIdSecretValue string = ''
+param fsClientIdSecretValue string = ''
+param fsClientSecretSecretValue string = ''
+param fsResourceSecretValue string = ''  // e.g. https://ws35d75573-fhir35d75573.fhir.azurehealthcareapis.com
 
 //Define variables
 var fhirservicename = '${workspaceName}/${fhirName}'
@@ -40,31 +45,77 @@ resource fhirService 'Microsoft.HealthcareApis/workspaces/fhirservices@2022-06-0
   }
 }
 
+// Note: deploy a key vault with the necessary secrets for the oss fhir loader
 // create key vault
-// resource keyvault 'Microsoft.KeyVault/vaults@2022-07-01' = {
-//   name: kvName
-//   location: location
-//   properties: {
-//     accessPolicies: [
-//       {
-//         objectId:  cicdServicePrincipalObjectId
-//         permissions: {
-//           secrets: [
-//             'get'
-//             'list'
-//             'set'  
-//           ]
-//         }
-//         tenantId: tenantId
-//       }
-//     ]
-//     sku: {
-//       family: 'A'
-//       name: 'standard'
-//     }
-//     tenantId: tenantId
-//   }
-// }
+resource keyvault 'Microsoft.KeyVault/vaults@2022-07-01' = {
+  name: kvName
+  location: location
+  properties: {
+    accessPolicies: [
+      {
+        objectId:  cicdServicePrincipalObjectId
+        permissions: {
+          secrets: [
+            'get'
+            'list'
+            'set'  
+          ]
+        }
+        tenantId: tenantId
+      }
+    ]
+    sku: {
+      family: 'A'
+      name: 'standard'
+    }
+    tenantId: tenantId
+  }
+}
+
+// create kv secret fhir service url 
+resource fsUrlSecret 'Microsoft.KeyVault/vaults/secrets@2021-11-01-preview' = {
+  parent: keyvault
+  name: 'FS-URL'
+  properties: {
+    value: fsUrlSecretValue
+  }
+}
+
+// create kv secret fhir tenant 
+resource fsTenantSecret 'Microsoft.KeyVault/vaults/secrets@2021-11-01-preview' = {
+  parent: keyvault
+  name: 'FS-TENANT-NAME'
+  properties: {
+    value: fsTenantIdSecretValue
+  }
+}
+
+// create kv secret clientId 
+resource fsClientIdSecret 'Microsoft.KeyVault/vaults/secrets@2021-11-01-preview' = {
+  parent: keyvault
+  name: 'FS-CLIENT-ID'
+  properties: {
+    value: fsClientIdSecretValue
+  }
+}
+
+// create kv secret clientSecret 
+resource fsClientSecretSecret 'Microsoft.KeyVault/vaults/secrets@2021-11-01-preview' = {
+  parent: keyvault
+  name: 'FS-SECRET'
+  properties: {
+    value: fsClientSecretSecretValue
+  }
+}
+
+// create kv secret clientSecret 
+resource fsResourceSecret 'Microsoft.KeyVault/vaults/secrets@2021-11-01-preview' = {
+  parent: keyvault
+  name: 'FS-RESOURCE'
+  properties: {
+    value: fsResourceSecretValue
+  }
+}
 
 // assign the service principal object Id with 'fhir contributor role' to the fhir service 
 resource fhirContributorRoleDefinition 'Microsoft.Authorization/roleDefinitions@2022-04-01' existing = {
