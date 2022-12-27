@@ -141,8 +141,8 @@ jobs:
         fhirName=${{steps.get-resource-names.outputs.fhirName}}
         kvName=${{steps.get-resource-names.outputs.kvName}}
         cicdServicePrincipalObjectId=${{steps.get-resource-names.outputs.cicdSPObjId}}
-        fsUrlSecretValue=https://${{needs.deploy-fhir-infra.outputs.fhirWorkspaceName}}-${{needs.deploy-fhir-infra.outputs.fhirName}}${{env.FHIR_ENDPT_DOMAIN}}
-        fsResourceSecretValue=https://${{needs.deploy-fhir-infra.outputs.fhirWorkspaceName}}-${{needs.deploy-fhir-infra.outputs.fhirName}}${{env.FHIR_ENDPT_DOMAIN}}
+        fsUrlSecretValue=https://${{steps.get-resource-names.outputs.fhirWorkspaceName}}-${{steps.get-resource-names.outputs.fhirName}}${{env.FHIR_ENDPT_DOMAIN}}
+        fsResourceSecretValue=https://${{steps.get-resource-names.outputs.fhirWorkspaceName}}-${{steps.get-resource-names.outputs.fhirName}}${{env.FHIR_ENDPT_DOMAIN}}
         fsTenantIdSecretValue=${{secrets.AZURE_TENANT_ID}}
         fsClientIdSecretValue=${{steps.create-fhir-client-app.outputs.fsClientId}}
         fsClientSecretSecretValue=${{steps.create-fhir-client-app.outputs.fsClientSecret}}'
