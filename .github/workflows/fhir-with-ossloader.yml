@@ -80,16 +80,24 @@ jobs:
         healthCareAPIsPermissionAppId="4f6778d8-5aef-43dc-a1ff-b073724b9495" # should be referenced in ms_docs
         fhirDataContributorRole="FHIR Data Contributor"
         
-        echo "...creating fhir-loader aad app.."
+        echo "...creating fhir-loader aad app..."
         fhirClientAppId=$(az ad app create --display-name $fhirClientName --web-redirect-uri $replyUrls --query "appId" -o tsv) 
         
         sleep 10
         
-        echo "...creating fhir-loader aad SP.."
-        az ad sp create --id $fhirClientAppId
+        echo "...creating fhir-loader aad SP..."
+        isFhirAppExist=$(az ad sp show --id $fhirClientAppId --query "id" -o tsv)
+        if [ -z "$isFhirAppExist" ]
+        then
+          az ad sp create --id $fhirClientAppId
+        else
+          echo "......SP '$fhirClientName' app already exists, skipping az ad sp create."
+        fi
+
+        echo "...creating fhir-loader aad app secret..."
         fhirClientAppSecret=$(az ad app credential reset --id $fhirClientAppId --display-name "client-secret" --query password -o tsv)
 
-        echo "...assigning SP a fhir rbac role to the fhir service "
+        echo "...assigning SP a fhir rbac role to the fhir service..."
         fhirClientObjectId=$(az ad sp list --display-name "$fhirClientName" --query "[].id" -o tsv)
         fhirResourceId=$(az resource list --name "$fhirServiceName" --query "[].id" -o tsv)
 
@@ -98,7 +106,7 @@ jobs:
             --role "$fhirDataContributorRole" \
             --scope $fhirResourceId --query "id" -o tsv)
 
-        echo "......adding Azure Healthcare APIs permission"
+        echo "......adding Azure Healthcare APIs permission."
         hcApisUserImpersonationScopeId=$(az ad sp list --filter "appId eq '$healthCareAPIsPermissionAppId'" --query "[].oauth2PermissionScopes[?value=='user_impersonation'].id" -o tsv)
 
         # check if the permission has already been added 
