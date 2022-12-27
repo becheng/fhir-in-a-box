@@ -5,11 +5,12 @@ param tenantId string = subscription().tenantId
 param location string = resourceGroup().location
 param cicdServicePrincipalObjectId string = ''
 param kvName string = 'kv${uniqueString(resourceGroup().id)}'
-param fsUrlSecretValue string = '' // e.g. https://ws35d75573-fhir35d75573.fhir.azurehealthcareapis.com
-param fsTenantIdSecretValue string = ''
-param fsClientIdSecretValue string = ''
-param fsClientSecretSecretValue string = ''
-param fsResourceSecretValue string = ''  // e.g. https://ws35d75573-fhir35d75573.fhir.azurehealthcareapis.com
+param fsUrl string = '' // e.g. https://ws35d75573-fhir35d75573.fhir.azurehealthcareapis.com
+param fsTenantId string = ''
+param fsClientId string = ''
+@secure()
+param fsClientSecret string = ''
+param fsResource string = ''  // e.g. https://ws35d75573-fhir35d75573.fhir.azurehealthcareapis.com
 
 //Define variables
 var fhirservicename = '${workspaceName}/${fhirName}'
@@ -77,7 +78,7 @@ resource fsUrlSecret 'Microsoft.KeyVault/vaults/secrets@2021-11-01-preview' = {
   parent: keyvault
   name: 'FS-URL'
   properties: {
-    value: fsUrlSecretValue
+    value: fsUrl
   }
 }
 
@@ -86,7 +87,7 @@ resource fsTenantSecret 'Microsoft.KeyVault/vaults/secrets@2021-11-01-preview' =
   parent: keyvault
   name: 'FS-TENANT-NAME'
   properties: {
-    value: fsTenantIdSecretValue
+    value: fsTenantId
   }
 }
 
@@ -95,7 +96,7 @@ resource fsClientIdSecret 'Microsoft.KeyVault/vaults/secrets@2021-11-01-preview'
   parent: keyvault
   name: 'FS-CLIENT-ID'
   properties: {
-    value: fsClientIdSecretValue
+    value: fsClientId
   }
 }
 
@@ -104,7 +105,7 @@ resource fsClientSecretSecret 'Microsoft.KeyVault/vaults/secrets@2021-11-01-prev
   parent: keyvault
   name: 'FS-SECRET'
   properties: {
-    value: fsClientSecretSecretValue
+    value: fsClientSecret
   }
 }
 
@@ -113,7 +114,7 @@ resource fsResourceSecret 'Microsoft.KeyVault/vaults/secrets@2021-11-01-preview'
   parent: keyvault
   name: 'FS-RESOURCE'
   properties: {
-    value: fsResourceSecretValue
+    value: fsResource
   }
 }
 
