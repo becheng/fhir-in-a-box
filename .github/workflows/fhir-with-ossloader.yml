@@ -141,11 +141,11 @@ jobs:
         fhirName=${{steps.get-resource-names.outputs.fhirName}}
         kvName=${{steps.get-resource-names.outputs.kvName}}
         cicdServicePrincipalObjectId=${{steps.get-resource-names.outputs.cicdSPObjId}}
-        fsUrlSecretValue=https://${{steps.get-resource-names.outputs.fhirWorkspaceName}}-${{steps.get-resource-names.outputs.fhirName}}${{env.FHIR_ENDPT_DOMAIN}}
-        fsResourceSecretValue=https://${{steps.get-resource-names.outputs.fhirWorkspaceName}}-${{steps.get-resource-names.outputs.fhirName}}${{env.FHIR_ENDPT_DOMAIN}}
-        fsTenantIdSecretValue=${{secrets.AZURE_TENANT_ID}}
-        fsClientIdSecretValue=${{steps.create-fhir-client-app.outputs.fsClientId}}
-        fsClientSecretSecretValue=${{steps.create-fhir-client-app.outputs.fsClientSecret}}'
+        fsUrl=https://${{steps.get-resource-names.outputs.fhirWorkspaceName}}-${{steps.get-resource-names.outputs.fhirName}}${{env.FHIR_ENDPT_DOMAIN}}
+        fsResource=https://${{steps.get-resource-names.outputs.fhirWorkspaceName}}-${{steps.get-resource-names.outputs.fhirName}}${{env.FHIR_ENDPT_DOMAIN}}
+        fsTenantId=${{secrets.AZURE_TENANT_ID}}
+        fsClientId=${{steps.create-fhir-client-app.outputs.fsClientId}}
+        fsClientSecret=${{steps.create-fhir-client-app.outputs.fsClientSecret}}'
 
       # download oss fhir loader deploy script 
       # 1. comment out the user prompts, e.g. 'read -p...'
