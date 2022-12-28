@@ -75,7 +75,6 @@ jobs:
       id: create-fhir-client-app
       run: |
         fhirClientName="${{steps.get-resource-names.outputs.ossFhirLoaderDeployPrefix}}-fhir-loader-app"
-        fhirServiceName="${{steps.get-resource-names.outputs.fhirWorkspaceName}}/${{steps.get-resource-names.outputs.fhirName}}" 
         replyUrls="https://oauth.pstmn.io/v1/callback" # postman client for now
         healthCareAPIsPermissionAppId="4f6778d8-5aef-43dc-a1ff-b073724b9495" # should be referenced in ms_docs
         
@@ -86,7 +85,7 @@ jobs:
         sleep 20
         
         echo "...creating fhir-loader aad SP..."
-        isFhirAppExist=$(az ad sp show --id $fhirClientAppId --query "id" -o tsv)
+        isFhirAppExist=$(az ad sp list --query "[?appId=='$fhirClientAppId'].displayName" -o tsv)
         if [ -z "$isFhirAppExist" ]
         then
           az ad sp create --id $fhirClientAppId
