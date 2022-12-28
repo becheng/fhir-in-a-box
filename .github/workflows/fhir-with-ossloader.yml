@@ -84,7 +84,7 @@ jobs:
         #fhirClientAppId=$(az ad app create --display-name $fhirClientName --web-redirect-uri $replyUrls --query "appId" -o tsv) 
         fhirClientAppId=$(az ad app create --display-name $fhirClientName --query "appId" -o tsv) 
         
-        sleep 10
+        sleep 20
         
         echo "...creating fhir-loader aad SP..."
         isFhirAppExist=$(az ad sp show --id $fhirClientAppId --query "id" -o tsv)
