@@ -81,7 +81,8 @@ jobs:
         fhirDataContributorRole="FHIR Data Contributor"
         
         echo "...creating fhir-loader aad app..."
-        fhirClientAppId=$(az ad app create --display-name $fhirClientName --web-redirect-uri $replyUrls --query "appId" -o tsv) 
+        #fhirClientAppId=$(az ad app create --display-name $fhirClientName --web-redirect-uri $replyUrls --query "appId" -o tsv) 
+        fhirClientAppId=$(az ad app create --display-name $fhirClientName --query "appId" -o tsv) 
         
         sleep 10
         
