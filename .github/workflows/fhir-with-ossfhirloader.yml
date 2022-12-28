@@ -74,11 +74,10 @@ jobs:
     - name: create fhir client app/SP for the fhir-loader
       id: create-fhir-client-app
       run: |
-        fhirClientName="${{steps.get-resource-names.outputs.ossFhirLoaderDeployPrefix}}-fhir-app"
+        fhirClientName="${{steps.get-resource-names.outputs.ossFhirLoaderDeployPrefix}}-fhir-loader-app"
         fhirServiceName="${{steps.get-resource-names.outputs.fhirWorkspaceName}}/${{steps.get-resource-names.outputs.fhirName}}" 
         replyUrls="https://oauth.pstmn.io/v1/callback" # postman client for now
         healthCareAPIsPermissionAppId="4f6778d8-5aef-43dc-a1ff-b073724b9495" # should be referenced in ms_docs
-        fhirDataContributorRole="FHIR Data Contributor"
         
         echo "...creating fhir-loader aad app..."
         #fhirClientAppId=$(az ad app create --display-name $fhirClientName --web-redirect-uri $replyUrls --query "appId" -o tsv) 
@@ -98,16 +97,7 @@ jobs:
         echo "...creating fhir-loader aad app secret..."
         fhirClientAppSecret=$(az ad app credential reset --id $fhirClientAppId --display-name "client-secret" --query password -o tsv)
 
-        echo "...assigning SP a fhir rbac role to the fhir service..."
-        fhirClientObjectId=$(az ad sp list --display-name "$fhirClientName" --query "[].id" -o tsv)
-        fhirResourceId=$(az resource list --name "$fhirServiceName" --query "[].id" -o tsv)
-
-        roleAssignId1=$(az role assignment create \
-            --assignee "$fhirClientObjectId" \
-            --role "$fhirDataContributorRole" \
-            --scope $fhirResourceId --query "id" -o tsv)
-
-        echo "......adding Azure Healthcare APIs permission."
+        echo "...adding Azure Healthcare APIs permission..."
         hcApisUserImpersonationScopeId=$(az ad sp list --filter "appId eq '$healthCareAPIsPermissionAppId'" --query "[].oauth2PermissionScopes[?value=='user_impersonation'].id" -o tsv)
 
         # check if the permission has already been added 
@@ -124,12 +114,14 @@ jobs:
         fi
 
         # mask the client id and secret
+        echo "creation of fhir app/sp for fhir-loader completed!"
         echo "::add-mask::$fhirClientAppId"
         echo "::add-mask::$fhirClientAppSecret"
 
         echo "fsClientId=$fhirClientAppId" >>$GITHUB_OUTPUT 
         echo "fsClientSecret=$fhirClientAppSecret" >>$GITHUB_OUTPUT 
-  
+        echo "fsSPObjId=$(az ad sp list --display-name "$fhirClientName" --query "[].id" -o tsv)" >> $GITHUB_OUTPUT
+
       # deploy fhir service and related workloads       
     - name: deploy-fhir-infra
       #if: ${{ false }} #disables the step
@@ -146,7 +138,8 @@ jobs:
         fsResource=https://${{steps.get-resource-names.outputs.fhirWorkspaceName}}-${{steps.get-resource-names.outputs.fhirName}}${{env.FHIR_ENDPT_DOMAIN}}
         fsTenantId=${{secrets.AZURE_TENANT_ID}}
         fsClientId=${{steps.create-fhir-client-app.outputs.fsClientId}}
-        fsClientSecret=${{steps.create-fhir-client-app.outputs.fsClientSecret}}'
+        fsClientSecret=${{steps.create-fhir-client-app.outputs.fsClientSecret}}
+        fhirLoaderServicePrincipalObjectId=${{steps.create-fhir-client-app.outputs.fsSPObjId}}'
 
       # download oss fhir loader deploy script 
       # 1. comment out the user prompts, e.g. 'read -p...'

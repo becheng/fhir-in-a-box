@@ -11,6 +11,7 @@ param fsClientId string = ''
 @secure()
 param fsClientSecret string = ''
 param fsResource string = ''  // e.g. https://ws35d75573-fhir35d75573.fhir.azurehealthcareapis.com
+param fhirLoaderServicePrincipalObjectId string = ''
 
 //Define variables
 var fhirservicename = '${workspaceName}/${fhirName}'
@@ -118,18 +119,36 @@ resource fsResourceSecret 'Microsoft.KeyVault/vaults/secrets@2021-11-01-preview'
   }
 }
 
-// assign the service principal object Id with 'fhir contributor role' to the fhir service 
+// reference: https://docs.microsoft.com/azure/role-based-access-control/built-in-roles
+// assign the github app service principal object Id with 'fhir reader role' to the fhir service 
+// Note: in production, becareful not to leak PHI to the logs
+resource fhirReaderRoleDefinition 'Microsoft.Authorization/roleDefinitions@2022-04-01' existing = {
+  scope: subscription()
+  name: '4c8d0bbc-75d3-4935-991f-5f3c56d81508'
+}
+// create the role assignment
+resource fhirRoleAssignmentToGPSP 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (!empty(cicdServicePrincipalObjectId)) {
+  scope: fhirService 
+  name: guid(subscription().id, cicdServicePrincipalObjectId, fhirReaderRoleDefinition.id)
+  properties: {
+    roleDefinitionId: fhirReaderRoleDefinition.id
+    principalId: cicdServicePrincipalObjectId
+    principalType: 'ServicePrincipal'
+  }
+}
+
+// assign the fhir-loader aad app service principal object Id with 'fhir contributor role' to the fhir service 
 resource fhirContributorRoleDefinition 'Microsoft.Authorization/roleDefinitions@2022-04-01' existing = {
   scope: subscription()
   name: '5a1fc7df-4bf1-4951-a576-89034ee01acd'
 }
 // create the role assignment
-resource fhirRoleAssignmentToSP 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (!empty(cicdServicePrincipalObjectId)) {
+resource fhirRoleAssignmentToFHIRLoaderSP 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (!empty(cicdServicePrincipalObjectId)) {
   scope: fhirService 
-  name: guid(subscription().id, cicdServicePrincipalObjectId, fhirContributorRoleDefinition.id)
+  name: guid(subscription().id, fhirLoaderServicePrincipalObjectId, fhirContributorRoleDefinition.id)
   properties: {
     roleDefinitionId: fhirContributorRoleDefinition.id
-    principalId: cicdServicePrincipalObjectId
+    principalId: fhirLoaderServicePrincipalObjectId
     principalType: 'ServicePrincipal'
   }
 }
