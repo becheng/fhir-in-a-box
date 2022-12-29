@@ -240,9 +240,11 @@ jobs:
         else
           destinationContainer="bundles"
         fi
-        destinationStore="${{needs.deploy-fhir-infra.outputs.ossfhirloaderStore}}/$destinationContainer/"
 
+        destinationStore="https://${{needs.deploy-fhir-infra.outputs.ossfhirloaderStore}}.blob.core.windows.net/$destinationContainer/"
         echo "...uploading to $destinationStore"
+
         azcopy cp "./output/$srcUploadDir/*.*" "$destinationStore" 
+      
       env: 
         AZCOPY_SPA_CLIENT_SECRET: ${{ secrets.AZCOPY_SPA_CLIENT_SECRET }}
