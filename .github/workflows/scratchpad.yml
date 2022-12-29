@@ -83,6 +83,7 @@ jobs:
           echo $aUrl/'$import'
           
       - name: test jq
+        if: ${{ false }} #disables the step
         run: |
           response="$(cat <<EOF
           HTTP/2 202
@@ -104,7 +105,7 @@ jobs:
         
       - name: sed test
         id: sed-test
-        #if: ${{ false }} #disables the step
+        if: ${{ false }} #disables the step
         run: |
           fhirUrl=https://ws736c3e4c-fhir736c3e4c.fhir.azurehealthcareapis.com
           echo $fhirUrl/'$import'
