@@ -12,6 +12,7 @@ on:
 
 env:
   TEMP_DIR_PATH: './tmp'
+  SYNTHEA_JAR_NAME: 'synthea-with-dependencies.jar'
   OSS_FHIR_LOADER_DEPLOY_SCRIPT: 'deployFhirBulk.bash '
   FHIR_ENDPT_DOMAIN: '.fhir.azurehealthcareapis.com'
   IS_NDJSON_BULKLOAD: ${{secrets.IS_NDJSON_BULKLOAD}}
@@ -215,7 +216,7 @@ jobs:
          --exporter.fhir.bulk_data=$isNdjsonFormat 
 
         if [[ ! $isNdjsonFormat && $isBundleCompressed ]]; then
-          echo "...zipping fhir bundle to ./output/zip folder ..."
+          echo "...zipping fhir bundles to ./output/zip folder ..."
           mkdir "zip"
           sudo apt-get install zip
           zip ./zip/compressedFhirBundles.zip ./fhir/*.*
