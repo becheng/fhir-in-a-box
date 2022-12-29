@@ -231,7 +231,7 @@ jobs:
           echo "...zipping fhir bundles to ./output/zip folder ..."
           mkdir "zip"
           sudo apt-get install zip
-          zip ./zip/compressedFhirBundles.zip ./fhir/*.*
+          zip ./zip/compressedFhirBundles.zip ./output/fhir/*.*
         fi
 
       # authorize cicd sp with access to upload fhir bundles to the oss fhir-loader storage acct
