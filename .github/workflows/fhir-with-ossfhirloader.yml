@@ -14,7 +14,8 @@ env:
   TEMP_DIR_PATH: './tmp'
   OSS_FHIR_LOADER_DEPLOY_SCRIPT: 'deployFhirBulk.bash '
   FHIR_ENDPT_DOMAIN: '.fhir.azurehealthcareapis.com'
-  SYNTHEA_DATA_TYPE: ${{secrets.SYNTHEA_DATA_TYPE}}
+  IS_NDJSON_BULKLOAD: ${{secrets.IS_NDJSON_BULKLOAD}}
+  IS_BUNDLE_COMPRESSED: ${{secrets.IS_BUNDLE_COMPRESSED}}
 
 defaults:
   run:
@@ -32,8 +33,9 @@ jobs:
     runs-on: ubuntu-latest
     environment: sample
     outputs:
-      fhirWorkspaceName: ${{ steps.get-resource-names.outputs.fhirWorkspaceName }} 
-      fhirName: ${{ steps.get-resource-names.outputs.fhirName }}
+      fhirWorkspaceName: "${{steps.get-resource-names.outputs.fhirWorkspaceName}}" 
+      fhirName: "${{steps.get-resource-names.outputs.fhirName}}"
+      ossfhirloaderStore: "${{steps.get-resource-names.outputs.ossFhirLoaderDeployPrefix}}store"
 
     steps:
 
@@ -88,13 +90,13 @@ jobs:
         isFhirAppExist=$(az ad sp list --query "[?appId=='$fhirClientAppId'].displayName" -o tsv)
         if [ -z "$isFhirAppExist" ]
         then
-          az ad sp create --id $fhirClientAppId
+          isSPCreated=$(az ad sp create --id $fhirClientAppId --query "displayName" -o tsv)
         else
           echo "......SP '$fhirClientName' app already exists, skipping az ad sp create."
         fi
 
         echo "...creating fhir-loader aad app secret..."
-        fhirClientAppSecret=$(az ad app credential reset --id $fhirClientAppId --display-name "client-secret" --query password -o tsv)
+        #TODO: fhirClientAppSecret=$(az ad app credential reset --id $fhirClientAppId --display-name "client-secret" --query password -o tsv)
 
         echo "...adding Azure Healthcare APIs permission..."
         hcApisUserImpersonationScopeId=$(az ad sp list --filter "appId eq '$healthCareAPIsPermissionAppId'" --query "[].oauth2PermissionScopes[?value=='user_impersonation'].id" -o tsv)
@@ -123,7 +125,7 @@ jobs:
 
       # deploy fhir service and related workloads       
     - name: deploy-fhir-infra
-      #if: ${{ false }} #disables the step
+      if: ${{ false }} #disables the step
       uses: azure/arm-deploy@v1.0.9
       with:
         subscriptionId: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
@@ -143,6 +145,7 @@ jobs:
       # download oss fhir loader deploy script 
       # 1. comment out the user prompts, e.g. 'read -p...'
     - name: download oss fhir loader deploy script
+      if: ${{ false }} #disables the step
       run: |
         mkdir ${{ env.TEMP_DIR_PATH }}
         curl -L https://raw.githubusercontent.com/microsoft/fhir-loader/main/scripts/deployFhirBulk.bash \
@@ -151,6 +154,7 @@ jobs:
 
       # deploy fhir loader
     - name: deploy-oss-fhir-loader
+      if: ${{ false }} #disables the step
       run: |
         cd ${{ env.TEMP_DIR_PATH }}
         bash ./${{ env.OSS_FHIR_LOADER_DEPLOY_SCRIPT }} \
@@ -164,7 +168,7 @@ jobs:
 
   # job2: seed fhir service with synthea data 
   seed-with-synthea-data:
-    if: ${{ false }} #disables the step
+    #if: ${{ false }} #disables the step
     needs: [deploy-fhir-infra]
     runs-on: ubuntu-latest
     environment: sample
@@ -191,46 +195,53 @@ jobs:
     
       # generate Synthea build import either as FHIR bundles (transactional or batch), ndjson FHIR bundles,  or compressed (.zip) FHIR Bundles
       # ref for synthea options: https://github.com/synthetichealth/synthea/wiki/HL7-FHIR
-    # - name: install-and-run-synthea
-    #   run: |
-    #     java -version
-    #     mkdir ${{ env.TEMP_DIR_PATH }}
-    #     curl -L https://github.com/synthetichealth/synthea/releases/download/master-branch-latest/synthea-with-dependencies.jar \
-    #      --output ${{ env.TEMP_DIR_PATH }}/${{ env.SYNTHEA_JAR_NAME }}
+      # synthea option '--exporter.fhir.transaction_bundle' when true (default) produces 'transaction' bundles, otherwise 'collection' bundles. 
+      # afaik - there is no option to export batch bundles in synthea 
+      # TODO: if we want to upload batch bundles and zip batch bundles, then need to get from different sources such as 'https://github.com/microsoft/fhir-loader/tree/main/samples/bundles-2.zip' 
+    - name: install-and-run-synthea
+      run: |
+        java -version
+        mkdir ${{ env.TEMP_DIR_PATH }}
+        curl -L https://github.com/synthetichealth/synthea/releases/download/master-branch-latest/synthea-with-dependencies.jar \
+         --output ${{ env.TEMP_DIR_PATH }}/${{ env.SYNTHEA_JAR_NAME }}
         
-    #     syntheaOptions=''
-    #     if ['zip' = ${{ env.SYNTHEA_DATA_TYPE }}] 
-    #     then
-    #       echo "...generating synthea zip files..."
-    #       $syntheaOptons=''
-    #     elif ['ndson' = ${{ env.SYNTHEA_DATA_TYPE }}]
-    #     then
-    #       echo "...generating synthea ndjson files..."
-    #       $syntheaOptons='--exporter.fhir.bulk_data=true'
-    #     else
-    #       echo "...generating synthea bundle files..."
-    #       $syntheaOptons=''
-    #     fi
+        isNdjsonFormat=${{env.IS_NDJSON_BULKLOAD}} 
+        isBundleCompressed=${{env.IS_BUNDLE_COMPRESSED}}
+        echo "isNdjsonFormat:$isNdjsonFormat, isBundleCompressed:$isBundleCompressed"
 
-    #     cd ${{ env.TEMP_DIR_PATH }}
+        cd ${{ env.TEMP_DIR_PATH }}
         
-    #     java -jar ${{ env.SYNTHEA_JAR_NAME }} \
-    #      -m "${{ secrets.SYNTHEA_MODULE_NAME }}" \
-    #      -p ${{ secrets.SYNTHEA_PATIENTS_NUM }} \
-    #      $syntheaOptons
+        java -jar ${{ env.SYNTHEA_JAR_NAME }} -m "${{ secrets.SYNTHEA_MODULE_NAME }}" -p ${{ secrets.SYNTHEA_PATIENTS_NUM }} \
+         --exporter.fhir.bulk_data=$isNdjsonFormat 
 
-    #     ls -l
+        if [[ ! $isNdjsonFormat && $isBundleCompressed ]]; then
+          echo "...zipping fhir bundle to ./output/zip folder ..."
+          mkdir "zip"
+          sudo apt-get install zip
+          zip ./zip/compressedFhirBundles.zip ./fhir/*.*
+        fi
     
-    #   # azcopy synthea data to target storage account
-    # - name: azcopy-to-storage
-    #   run: |
-    #     ls -l
-    #     cd ${{ env.TEMP_DIR_PATH }}
-    #     wget -O azcopy_v10.tar.gz https://aka.ms/downloadazcopy-v10-linux && tar -xf azcopy_v10.tar.gz --strip-components=1
-    #     ls -l
-    #     azcopy login --service-principal --application-id ${{ secrets.AZURE_CLIENT_ID }} --tenant-id ${{ secrets.AZURE_TENANT_ID }}
-    #     azcopy login status
-    #     echo "STORAGEACCT: https://${{needs.deploy-fhir-infra.outputs.import-storage-acct-name}}.blob.core.windows.net/${{needs.deploy-fhir-infra.outputs.bulk-import-blob-container-name}}/"
-    #     azcopy cp "./output/fhir/*.*" "https://${{needs.deploy-fhir-infra.outputs.import-storage-acct-name}}.blob.core.windows.net/${{needs.deploy-fhir-infra.outputs.bulk-import-blob-container-name}}/" --recursive=true
-    #   env: 
-    #     AZCOPY_SPA_CLIENT_SECRET: ${{ secrets.AZCOPY_SPA_CLIENT_SECRET }}
+      # azcopy synthea data to target storage account
+    - name: azcopy-to-storage
+      run: |
+        cd ${{ env.TEMP_DIR_PATH }}
+        wget -O azcopy_v10.tar.gz https://aka.ms/downloadazcopy-v10-linux && tar -xf azcopy_v10.tar.gz --strip-components=1
+
+        azcopy login --service-principal --application-id ${{ secrets.AZURE_CLIENT_ID }} --tenant-id ${{ secrets.AZURE_TENANT_ID }}
+        azcopy login status
+
+        srcUploadDir="fhir"  
+        if [ -d "${{env.TEMP_DIR_PATH}}/zip" ]; then
+          destinationContainer="zip"
+          srcUploadDir="zip"
+        elif [ ${{env.IS_NDJSON_BULKLOAD}} ]; then
+          destinationContainer="ndjson"
+        else
+          destinationContainer="bundles"
+        fi
+        destinationStore="${{needs.deploy-fhir-infra.outputs.ossfhirloaderStore}}/$destinationContainer/"
+
+        echo "...uploading to $destinationStore"
+        azcopy cp "./output/$srcUploadDir/*.*" "$destinationStore" 
+      env: 
+        AZCOPY_SPA_CLIENT_SECRET: ${{ secrets.AZCOPY_SPA_CLIENT_SECRET }}
