@@ -16,6 +16,8 @@ on:
 env:
   IS_NDJSON_BULKLOAD: ${{secrets.IS_NDJSON_BULKLOAD}}
   IS_BUNDLE_COMPRESSED: ${{secrets.IS_BUNDLE_COMPRESSED}}
+  TEMP_DIR_PATH: './tmp'
+
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
@@ -182,3 +184,14 @@ jobs:
           if [[ "$isNdjsonFormat" = "false" && "$isBundleCompressed" = "true" ]]; then
             echo "...zipping fhir bundles to ./output/zip folder ..."
           fi
+
+          mkdir ${{ env.TEMP_DIR_PATH }}
+          cd ${{ env.TEMP_DIR_PATH }}
+          mkdir "zip"
+
+          if [ -d "${{env.TEMP_DIR_PATH}}/zip" ]; then
+            echo "zip dir exists"
+          else
+            echo "zip dir does not exist."
+          fi
+
