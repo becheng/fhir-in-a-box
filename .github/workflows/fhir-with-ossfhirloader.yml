@@ -37,6 +37,7 @@ jobs:
       fhirWorkspaceName: "${{steps.get-resource-names.outputs.fhirWorkspaceName}}" 
       fhirName: "${{steps.get-resource-names.outputs.fhirName}}"
       ossfhirloaderStore: "${{steps.get-resource-names.outputs.ossFhirLoaderDeployPrefix}}store"
+      cicdServicePrincipalObjectId: ${{steps.get-resource-names.outputs.cicdSPObjId}}
 
     steps:
 
@@ -208,7 +209,18 @@ jobs:
         
         isNdjsonFormat=${{env.IS_NDJSON_BULKLOAD}} 
         isBundleCompressed=${{env.IS_BUNDLE_COMPRESSED}}
-        echo "isNdjsonFormat:$isNdjsonFormat, isBundleCompressed:$isBundleCompressed"
+
+        if [$isNdjsonFormat]; then
+          echo "isNdjsonFormat:true"
+        else
+          echo "isNdjsonFormat:false"
+        fi
+
+        if [$isBundleCompressed]; then
+          echo "isBundleCompressed:true"
+        else
+          echo "isBundleCompressed:false"
+        fi
 
         cd ${{ env.TEMP_DIR_PATH }}
         
@@ -221,6 +233,18 @@ jobs:
           sudo apt-get install zip
           zip ./zip/compressedFhirBundles.zip ./fhir/*.*
         fi
+
+      # authorize cicd sp with access to upload fhir bundles to the oss fhir-loader storage acct
+    - name: assign-storage-rbac
+      run: |
+        echo "...creating role assignment; setting sp with a storage blob contributor role to the oss fhir-loader storage acct..."
+        saResourceId=$(az resource list --name "${{needs.deploy-fhir-infra.outputs.ossfhirloaderStore}}" --query "[].id" -o tsv) 
+
+        saRoleAssignment=$(az role assignment create \
+        --assignee "${{needs.deploy-fhir-infra.outputs.cicdServicePrincipalObjectId}}" \
+        --role "Storage Blob Data Contributor" \
+        --scope "$saResourceId" --query "id" -o tsv)
+      
     
       # azcopy synthea data to target storage account
     - name: azcopy-to-storage
