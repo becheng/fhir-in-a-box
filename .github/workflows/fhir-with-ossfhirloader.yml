@@ -97,7 +97,7 @@ jobs:
         fi
 
         echo "...creating fhir-loader aad app secret..."
-        #TODO: fhirClientAppSecret=$(az ad app credential reset --id $fhirClientAppId --display-name "client-secret" --query password -o tsv)
+        fhirClientAppSecret=$(az ad app credential reset --id $fhirClientAppId --display-name "client-secret" --query password -o tsv)
 
         echo "...adding Azure Healthcare APIs permission..."
         hcApisUserImpersonationScopeId=$(az ad sp list --filter "appId eq '$healthCareAPIsPermissionAppId'" --query "[].oauth2PermissionScopes[?value=='user_impersonation'].id" -o tsv)
