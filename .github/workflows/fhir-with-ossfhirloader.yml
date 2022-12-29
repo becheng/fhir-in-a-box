@@ -210,13 +210,13 @@ jobs:
         isNdjsonFormat=${{env.IS_NDJSON_BULKLOAD}} 
         isBundleCompressed=${{env.IS_BUNDLE_COMPRESSED}}
 
-        if [$isNdjsonFormat == "true"]; then
+        if ["$isNdjsonFormat" = "true"]; then
           echo "...Creating bulk (ndjson) bundles."
         else
           echo "...Creating transaction bundles"
         fi
 
-        if [$isBundleCompressed == "true"]; then
+        if ["$isBundleCompressed" = "true"]; then
           echo "...bundles are compressed aka zipped."
         else
           echo "...bundles are non compressed."
@@ -259,7 +259,7 @@ jobs:
         if [ -d "${{env.TEMP_DIR_PATH}}/zip" ]; then
           destinationContainer="zip"
           srcUploadDir="zip"
-        elif [ "${{env.IS_NDJSON_BULKLOAD}}"" == "true" ]; then
+        elif [ "${{env.IS_NDJSON_BULKLOAD}}" = "true" ]; then
           destinationContainer="ndjson"
         else
           destinationContainer="bundles"
