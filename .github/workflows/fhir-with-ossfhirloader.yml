@@ -30,7 +30,6 @@ jobs:
 
   # job1: deploy the ahds workspace with a fhir service
   deploy-fhir-infra:
-    #if: ${{ false }} #disables the job
     runs-on: ubuntu-latest
     environment: sample
     outputs:
@@ -127,7 +126,6 @@ jobs:
 
       # deploy fhir service and related workloads       
     - name: deploy-fhir-infra
-      if: ${{ false }} #disables the step
       uses: azure/arm-deploy@v1.0.9
       with:
         subscriptionId: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
@@ -147,7 +145,6 @@ jobs:
       # download oss fhir loader deploy script 
       # 1. comment out the user prompts, e.g. 'read -p...'
     - name: download oss fhir loader deploy script
-      if: ${{ false }} #disables the step
       run: |
         mkdir ${{ env.TEMP_DIR_PATH }}
         curl -L https://raw.githubusercontent.com/microsoft/fhir-loader/main/scripts/deployFhirBulk.bash \
@@ -156,7 +153,6 @@ jobs:
 
       # deploy fhir loader
     - name: deploy-oss-fhir-loader
-      if: ${{ false }} #disables the step
       run: |
         cd ${{ env.TEMP_DIR_PATH }}
         bash ./${{ env.OSS_FHIR_LOADER_DEPLOY_SCRIPT }} \
@@ -170,7 +166,6 @@ jobs:
 
   # job2: seed fhir service with synthea data 
   seed-with-synthea-data:
-    #if: ${{ false }} #disables the step
     needs: [deploy-fhir-infra]
     runs-on: ubuntu-latest
     environment: sample
