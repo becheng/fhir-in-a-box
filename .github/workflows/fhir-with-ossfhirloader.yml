@@ -227,7 +227,7 @@ jobs:
         java -jar ${{ env.SYNTHEA_JAR_NAME }} -m "${{ secrets.SYNTHEA_MODULE_NAME }}" -p ${{ secrets.SYNTHEA_PATIENTS_NUM }} \
          --exporter.fhir.bulk_data=$isNdjsonFormat 
 
-        if [[ ! $isNdjsonFormat && $isBundleCompressed ]]; then
+        if [ "$isNdjsonFormat" = "false" && "$isBundleCompressed" = "true" ]; then
           echo "...zipping fhir bundles to ./output/zip folder ..."
           mkdir "zip"
           sudo apt-get install zip
