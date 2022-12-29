@@ -188,6 +188,7 @@ jobs:
           mkdir ${{ env.TEMP_DIR_PATH }}
           cd ${{ env.TEMP_DIR_PATH }}
           mkdir "zip"
+          ls -l
 
           if [ -d "${{env.TEMP_DIR_PATH}}/zip" ]; then
             echo "zip dir exists"
