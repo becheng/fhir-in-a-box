@@ -67,7 +67,7 @@ jobs:
         echo "kvName=kv$suffix" >> $GITHUB_OUTPUT
         echo "cicdSPObjId=$(az ad sp show --id "${{secrets.AZURE_CLIENT_ID}}" --query "id" -o tsv)" >> $GITHUB_OUTPUT
         echo "ossFhirLoaderDeployPrefix=ofl$suffix" >> $GITHUB_OUTPUT
-        echo "rgLocation=$(az group show -g "fhir-in-a-box-v3" --query "location" -o tsv)" >> $GITHUB_OUTPUT
+        echo "rgLocation=$(az group show -g "${{ secrets.AZURE_RG }}" --query "location" -o tsv)" >> $GITHUB_OUTPUT
 
         unset rsGroupId
         unset suffix
@@ -165,6 +165,9 @@ jobs:
         
 
   # job2: seed fhir service with synthea data 
+  # TODO: move this into a reusable workflow and pass following as inputs, 
+    # i. needs.deploy-fhir-infra.outputs.cicdServicePrincipalObjectId
+    # ii. needs.deploy-fhir-infra.outputs.ossfhirloaderStore
   seed-with-synthea-data:
     needs: [deploy-fhir-infra]
     runs-on: ubuntu-latest
