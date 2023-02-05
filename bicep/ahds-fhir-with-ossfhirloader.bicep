@@ -120,7 +120,7 @@ resource fsResourceSecret 'Microsoft.KeyVault/vaults/secrets@2021-11-01-preview'
 }
 
 // reference: https://docs.microsoft.com/azure/role-based-access-control/built-in-roles
-// assign the github app service principal object Id with 'fhir reader role' to the fhir service 
+// assign the github app service principal object Id with 'fhir reader role' (4c8d0bbc-75d3-4935-991f-5f3c56d81508) to the fhir service 
 // Note: in production, becareful not to leak PHI to the logs
 resource fhirReaderRoleDefinition 'Microsoft.Authorization/roleDefinitions@2022-04-01' existing = {
   scope: subscription()
@@ -129,7 +129,7 @@ resource fhirReaderRoleDefinition 'Microsoft.Authorization/roleDefinitions@2022-
 // create the role assignment
 resource fhirRoleAssignmentToGPSP 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (!empty(cicdServicePrincipalObjectId)) {
   scope: fhirService 
-  name: guid(subscription().id, cicdServicePrincipalObjectId, fhirReaderRoleDefinition.id)
+  name: guid(subscription().id, cicdServicePrincipalObjectId, fhirReaderRoleDefinition.id, resourceGroup().id)
   properties: {
     roleDefinitionId: fhirReaderRoleDefinition.id
     principalId: cicdServicePrincipalObjectId
@@ -137,7 +137,7 @@ resource fhirRoleAssignmentToGPSP 'Microsoft.Authorization/roleAssignments@2022-
   }
 }
 
-// assign the fhir-loader aad app service principal object Id with 'fhir contributor role' to the fhir service 
+// assign the fhir-loader aad app service principal object Id with 'fhir contributor role' (5a1fc7df-4bf1-4951-a576-89034ee01acd) to the fhir service 
 resource fhirContributorRoleDefinition 'Microsoft.Authorization/roleDefinitions@2022-04-01' existing = {
   scope: subscription()
   name: '5a1fc7df-4bf1-4951-a576-89034ee01acd'
@@ -145,7 +145,7 @@ resource fhirContributorRoleDefinition 'Microsoft.Authorization/roleDefinitions@
 // create the role assignment
 resource fhirRoleAssignmentToFHIRLoaderSP 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (!empty(cicdServicePrincipalObjectId)) {
   scope: fhirService 
-  name: guid(subscription().id, fhirLoaderServicePrincipalObjectId, fhirContributorRoleDefinition.id)
+  name: guid(subscription().id, fhirLoaderServicePrincipalObjectId, fhirContributorRoleDefinition.id, resourceGroup().id)
   properties: {
     roleDefinitionId: fhirContributorRoleDefinition.id
     principalId: fhirLoaderServicePrincipalObjectId
