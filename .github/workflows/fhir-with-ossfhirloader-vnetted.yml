@@ -1,0 +1,272 @@
+name: fhir-with-ossloader
+
+on:
+  # Triggers the workflow on push or pull request events but only for the "main" branch
+  # push:
+  #   branches: [ "main" ]
+  # pull_request:
+  #   branches: [ "main" ]
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+env:
+  TEMP_DIR_PATH: './tmp'
+  SYNTHEA_JAR_NAME: 'synthea-with-dependencies.jar'
+  OSS_FHIR_LOADER_DEPLOY_SCRIPT: 'deployFhirBulk.bash '
+  FHIR_ENDPT_DOMAIN: '.fhir.azurehealthcareapis.com'
+  IS_NDJSON_BULKLOAD: ${{secrets.IS_NDJSON_BULKLOAD}}
+  IS_BUNDLE_COMPRESSED: ${{secrets.IS_BUNDLE_COMPRESSED}}
+
+defaults:
+  run:
+    shell: bash
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+
+  # job1: deploy the ahds workspace with a fhir service
+  deploy-fhir-infra:
+    runs-on: ubuntu-latest
+    environment: sample
+    outputs:
+      fhirWorkspaceName: "${{steps.get-resource-names.outputs.fhirWorkspaceName}}" 
+      fhirName: "${{steps.get-resource-names.outputs.fhirName}}"
+      ossfhirloaderStore: "${{steps.get-resource-names.outputs.ossFhirLoaderDeployPrefix}}store"
+      cicdServicePrincipalObjectId: ${{steps.get-resource-names.outputs.cicdSPObjId}}
+
+    steps:
+
+      # checkout 
+    - uses: actions/checkout@v3
+
+      # log into Azure
+    - name: az-login
+      uses: Azure/login@v1.4.6
+      with:
+        client-id: ${{ secrets.AZURE_CLIENT_ID }}
+        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+    
+      # hash the resource group's ID so it's unique but also repeatable
+      # steps: 
+      # 1. retrieve the resouceGroup's id property
+      # 2. hash the id and take the first 8 chars of the hash
+      # 3. set the output using the hash substring
+    - name: generate resource names 
+      id: get-resource-names
+      run: |
+        rsGroupId=$(az group list --query "[?name=='${{ secrets.AZURE_RG }}'].id" -o tsv)        
+        suffix=$(echo -n $rsGroupId | shasum | cut -c1-8)
+
+        echo "fhirWorkspaceName=ws$suffix" >> $GITHUB_OUTPUT
+        echo "fhirName=fhir$suffix" >> $GITHUB_OUTPUT
+        echo "kvName=kv$suffix" >> $GITHUB_OUTPUT
+        echo "cicdSPObjId=$(az ad sp show --id "${{secrets.AZURE_CLIENT_ID}}" --query "id" -o tsv)" >> $GITHUB_OUTPUT
+        echo "ossFhirLoaderDeployPrefix=ofl$suffix" >> $GITHUB_OUTPUT
+        echo "rgLocation=$(az group show -g "${{ secrets.AZURE_RG }}" --query "location" -o tsv)" >> $GITHUB_OUTPUT
+
+        unset rsGroupId
+        unset suffix
+
+      # create aad fhir client app for the loader
+      # TODO: assign the gh app/sp with Cloud Application administrator via a PIM Active Assignment 
+    - name: create fhir client app/SP for the fhir-loader
+      id: create-fhir-client-app
+      run: |
+        fhirClientName="${{steps.get-resource-names.outputs.ossFhirLoaderDeployPrefix}}-fhir-loader-app"
+        replyUrls="https://oauth.pstmn.io/v1/callback" # postman client for now
+        healthCareAPIsPermissionAppId="4f6778d8-5aef-43dc-a1ff-b073724b9495" # should be referenced in ms_docs
+        
+        echo "...creating fhir-loader aad app..."
+        #fhirClientAppId=$(az ad app create --display-name $fhirClientName --web-redirect-uri $replyUrls --query "appId" -o tsv) 
+        fhirClientAppId=$(az ad app create --display-name $fhirClientName --query "appId" -o tsv) 
+        
+        sleep 20
+        
+        echo "...creating fhir-loader aad SP..."
+        isFhirAppExist=$(az ad sp list --query "[?appId=='$fhirClientAppId'].displayName" -o tsv)
+        if [ -z "$isFhirAppExist" ]
+        then
+          isSPCreated=$(az ad sp create --id $fhirClientAppId --query "displayName" -o tsv)
+        else
+          echo "......SP '$fhirClientName' app already exists, skipping az ad sp create."
+        fi
+
+        echo "...creating fhir-loader aad app secret..."
+        fhirClientAppSecret=$(az ad app credential reset --id $fhirClientAppId --display-name "client-secret" --query password -o tsv)
+
+        echo "...adding Azure Healthcare APIs permission..."
+        hcApisUserImpersonationScopeId=$(az ad sp list --filter "appId eq '$healthCareAPIsPermissionAppId'" --query "[].oauth2PermissionScopes[?value=='user_impersonation'].id" -o tsv)
+
+        # check if the permission has already been added 
+        isHCApiExists=$(az ad app permission list --id "$fhirClientAppId" --query "[].resourceAccess[?id=='$hcApisUserImpersonationScopeId'].id" -o tsv)
+        if [ -z  "$isHCApiExists" ] 
+        then 
+            # add the hcAPI permission and user_impersonation scope
+            az ad app permission add \
+            --id $fhirClientAppId \
+            --api $healthCareAPIsPermissionAppId \
+            --api-permissions $hcApisUserImpersonationScopeId=Scope
+        else
+            echo ".........Azure Healthcare APIs permission already exists, skipping permission add."
+        fi
+
+        # mask the client id and secret
+        echo "creation of fhir app/sp for fhir-loader completed!"
+        echo "::add-mask::$fhirClientAppId"
+        echo "::add-mask::$fhirClientAppSecret"
+
+        echo "fsClientId=$fhirClientAppId" >>$GITHUB_OUTPUT 
+        echo "fsClientSecret=$fhirClientAppSecret" >>$GITHUB_OUTPUT 
+        echo "fsSPObjId=$(az ad sp list --display-name "$fhirClientName" --query "[].id" -o tsv)" >> $GITHUB_OUTPUT
+
+      # deploy fhir service and related workloads       
+    - name: deploy-fhir-infra
+      uses: azure/arm-deploy@v1.0.9
+      with:
+        subscriptionId: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+        resourceGroupName: ${{ secrets.AZURE_RG }}
+        template: ./bicep/ahds-fhir-with-ossfhirloader.bicep
+        parameters: 'workspaceName=${{steps.get-resource-names.outputs.fhirWorkspaceName}}
+        fhirName=${{steps.get-resource-names.outputs.fhirName}}
+        kvName=${{steps.get-resource-names.outputs.kvName}}
+        cicdServicePrincipalObjectId=${{steps.get-resource-names.outputs.cicdSPObjId}}
+        fsUrl=https://${{steps.get-resource-names.outputs.fhirWorkspaceName}}-${{steps.get-resource-names.outputs.fhirName}}${{env.FHIR_ENDPT_DOMAIN}}
+        fsResource=https://${{steps.get-resource-names.outputs.fhirWorkspaceName}}-${{steps.get-resource-names.outputs.fhirName}}${{env.FHIR_ENDPT_DOMAIN}}
+        fsTenantId=${{secrets.AZURE_TENANT_ID}}
+        fsClientId=${{steps.create-fhir-client-app.outputs.fsClientId}}
+        fsClientSecret=${{steps.create-fhir-client-app.outputs.fsClientSecret}}
+        fhirLoaderServicePrincipalObjectId=${{steps.create-fhir-client-app.outputs.fsSPObjId}}'
+
+      # download oss fhir loader deploy script 
+      # 1. comment out the user prompts, e.g. 'read -p...'
+    - name: download oss fhir loader deploy script
+      run: |
+        mkdir ${{ env.TEMP_DIR_PATH }}
+        curl -L https://raw.githubusercontent.com/becheng/fhir-loader/main/scripts/deployFhirBulk.bash \
+         --output ${{ env.TEMP_DIR_PATH }}/${{ env.OSS_FHIR_LOADER_DEPLOY_SCRIPT }}
+        sed -i '/.*read -p/ s/./#&/' ${{ env.TEMP_DIR_PATH }}/${{ env.OSS_FHIR_LOADER_DEPLOY_SCRIPT }}       
+
+      # deploy fhir loader
+    - name: deploy-oss-fhir-loader
+      run: |
+        cd ${{ env.TEMP_DIR_PATH }}
+        bash ./${{ env.OSS_FHIR_LOADER_DEPLOY_SCRIPT }} \
+         -i ${{secrets.AZURE_SUBSCRIPTION_ID}} \
+         -g ${{secrets.AZURE_RG}} \
+         -l ${{steps.get-resource-names.outputs.rgLocation}} \
+         -n ${{steps.get-resource-names.outputs.ossFhirLoaderDeployPrefix}} \
+         -k ${{steps.get-resource-names.outputs.kvName}} \
+         -o "fhir"
+        
+
+  # job2: seed fhir service with synthea data 
+  # TODO: move this into a reusable workflow and pass following as inputs, 
+    # i. needs.deploy-fhir-infra.outputs.cicdServicePrincipalObjectId
+    # ii. needs.deploy-fhir-infra.outputs.ossfhirloaderStore
+  seed-with-synthea-data:
+    needs: [deploy-fhir-infra]
+    runs-on: ubuntu-latest
+    environment: sample
+
+    steps:
+
+      # checkout 
+    - uses: actions/checkout@v3
+
+      # log into Azure
+    - name: az-login
+      uses: Azure/login@v1.4.6
+      with:
+        client-id: ${{ secrets.AZURE_CLIENT_ID }}
+        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+    
+      # Install synthea and generate data
+    - name: install-jdk
+      uses: actions/setup-java@v3.8.0
+      with:
+        distribution: 'microsoft' 
+        java-version: '17'
+    
+      # generate Synthea build import either as FHIR bundles (transactional or batch), ndjson FHIR bundles,  or compressed (.zip) FHIR Bundles
+      # ref for synthea options: https://github.com/synthetichealth/synthea/wiki/HL7-FHIR
+      # synthea option '--exporter.fhir.transaction_bundle' when true (default) produces 'transaction' bundles, otherwise 'collection' bundles. 
+      # afaik - there is no option to export batch bundles in synthea 
+      # TODO: if we want to upload batch bundles and zip batch bundles, then need to get from different sources such as 'https://github.com/microsoft/fhir-loader/tree/main/samples/bundles-2.zip' 
+    - name: install-and-run-synthea
+      run: |
+        java -version
+        mkdir ${{ env.TEMP_DIR_PATH }}
+        curl -L https://github.com/synthetichealth/synthea/releases/download/master-branch-latest/synthea-with-dependencies.jar \
+         --output ${{ env.TEMP_DIR_PATH }}/${{ env.SYNTHEA_JAR_NAME }}
+      
+        isNdjsonFormat="${{env.IS_NDJSON_BULKLOAD}}" 
+        isBundleCompressed="${{env.IS_BUNDLE_COMPRESSED}}"
+
+        if [ "$isNdjsonFormat" = "true" ]; then
+          echo "...Creating bulk (ndjson) bundles."
+        else
+          echo "...Creating transaction bundles"
+        fi
+
+        if [ "$isBundleCompressed" = "true" ]; then
+          echo "...bundles are compressed aka zipped."
+        else
+          echo "...bundles are non compressed."
+        fi
+
+        cd ${{ env.TEMP_DIR_PATH }}
+        
+        java -jar ${{ env.SYNTHEA_JAR_NAME }} -m "${{ secrets.SYNTHEA_MODULE_NAME }}" -p ${{ secrets.SYNTHEA_PATIENTS_NUM }} \
+         --exporter.fhir.bulk_data=$isNdjsonFormat 
+
+        if [[ "$isNdjsonFormat" = "false" && "$isBundleCompressed" = "true" ]]; then
+          echo "...zipping fhir bundles to ./output/zip folder ..."
+          mkdir "zip"
+          sudo apt-get install zip
+          zip ./zip/compressedFhirBundles.zip ./output/fhir/*.*
+        fi
+
+      # authorize cicd sp with access to upload fhir bundles to the oss fhir-loader storage acct
+    - name: assign-storage-rbac
+      run: |
+        echo "...creating role assignment; setting sp with a storage blob contributor role to the oss fhir-loader storage acct..."
+        saResourceId=$(az resource list --name "${{needs.deploy-fhir-infra.outputs.ossfhirloaderStore}}" --query "[].id" -o tsv) 
+
+        saRoleAssignment=$(az role assignment create \
+        --assignee "${{needs.deploy-fhir-infra.outputs.cicdServicePrincipalObjectId}}" \
+        --role "Storage Blob Data Contributor" \
+        --scope "$saResourceId" --query "id" -o tsv)
+      
+    
+      # azcopy synthea data to target storage account
+    - name: azcopy-to-storage
+      run: |
+        cd ${{ env.TEMP_DIR_PATH }}
+        wget -O azcopy_v10.tar.gz https://aka.ms/downloadazcopy-v10-linux && tar -xf azcopy_v10.tar.gz --strip-components=1
+
+        azcopy login --service-principal --application-id ${{ secrets.AZURE_CLIENT_ID }} --tenant-id ${{ secrets.AZURE_TENANT_ID }}
+        azcopy login status
+
+        srcUploadDir="./output/fhir"  
+        if [ -d "zip" ]; then
+          destinationContainer="zip"
+          srcUploadDir="./zip"
+        elif [ "${{env.IS_NDJSON_BULKLOAD}}" = "true" ]; then
+          destinationContainer="ndjson"
+        else
+          destinationContainer="bundles"
+        fi
+
+        destinationStore="https://${{needs.deploy-fhir-infra.outputs.ossfhirloaderStore}}.blob.core.windows.net/$destinationContainer/"
+        echo "...uploading to $destinationStore"
+
+        azcopy cp "$srcUploadDir/*.*" "$destinationStore" 
+      
+      env: 
+        AZCOPY_SPA_CLIENT_SECRET: ${{ secrets.AZCOPY_SPA_CLIENT_SECRET }}
